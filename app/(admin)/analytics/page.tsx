@@ -68,7 +68,7 @@ const AnalyticsPage = () => {
       setLoading(true);
       const [payments, students, routes, drivers, vehicles, grievances, bookings] = await Promise.all([
         DatabaseService.getPayments(),
-        DatabaseService.getStudents(),
+        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || []),
         DatabaseService.getRoutes(),
         DatabaseService.getDrivers(),
         DatabaseService.getVehicles(),

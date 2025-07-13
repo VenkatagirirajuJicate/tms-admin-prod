@@ -856,7 +856,7 @@ const PaymentsPage = () => {
       setLoading(true);
       const [paymentsData, studentsData] = await Promise.all([
         DatabaseService.getPayments(),
-        DatabaseService.getStudents()
+        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || [])
       ]);
       setPayments(paymentsData);
       setStudents(studentsData);

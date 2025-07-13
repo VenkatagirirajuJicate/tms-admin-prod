@@ -1889,12 +1889,26 @@ const StudentsPage = () => {
   const fixEmergencyContacts = async () => {
     try {
       console.log('Running one-time emergency contact fix...');
-      const updatedCount = await DatabaseService.fixEmergencyContacts();
-      if (updatedCount && updatedCount > 0) {
-        toast.success(`Updated emergency contacts for ${updatedCount} students`);
-        // Refresh students data to show updated emergency contacts
-        fetchStudents();
+      const response = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'fixEmergencyContacts' }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        if (result.updatedCount > 0) {
+          toast.success(`Updated emergency contacts for ${result.updatedCount} students`);
+          // Refresh students data to show updated emergency contacts
+          fetchStudents();
+        }
+      } else {
+        console.error('Error fixing emergency contacts:', result.error);
       }
+      
       // Mark as completed so it doesn't run again
       localStorage.setItem('emergency_contacts_fixed', 'true');
     } catch (error) {
@@ -1909,7 +1923,7 @@ const StudentsPage = () => {
       
       // Fetch from both sources in parallel
       const [localDbStudents, externalApiStudents] = await Promise.all([
-        DatabaseService.getStudents(),
+        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || []),
         fetchExternalStudents()
       ]);
       

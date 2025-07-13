@@ -120,7 +120,7 @@ const DashboardPage = () => {
       
       // Fetch from both sources in parallel
       const [localDbStudents, externalApiStudents] = await Promise.all([
-        DatabaseService.getStudents(),
+        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || []),
         fetchExternalStudents()
       ]);
       
