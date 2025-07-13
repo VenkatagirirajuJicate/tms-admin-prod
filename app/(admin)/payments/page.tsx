@@ -854,10 +854,16 @@ const PaymentsPage = () => {
   const fetchPaymentsData = async () => {
     try {
       setLoading(true);
-      const [paymentsData, studentsData] = await Promise.all([
-        DatabaseService.getPayments(),
-        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || [])
+      const [paymentsResponse, studentsResponse] = await Promise.all([
+        fetch('/api/admin/payments'),
+        fetch('/api/admin/students')
       ]);
+      
+      const paymentsResult = await paymentsResponse.json();
+      const studentsResult = await studentsResponse.json();
+      
+      const paymentsData = paymentsResult.success ? paymentsResult.data : [];
+      const studentsData = studentsResult.success ? studentsResult.data : [];
       setPayments(paymentsData);
       setStudents(studentsData);
     } catch (error) {

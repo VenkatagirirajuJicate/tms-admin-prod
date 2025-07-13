@@ -1,42 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
+    // Create Supabase admin client (server-side only)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch vehicles from database
     const { data: vehicles, error } = await supabase
       .from('vehicles')
       .select('*')
-      .order('registration_number', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching vehicles:', error);
-      return NextResponse.json({ error: 'Failed to fetch vehicles' }, { status: 500 });
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch vehicles' },
+        { status: 500 }
+      );
     }
 
-    // Transform database fields to camelCase to match interface
-    const transformedVehicles = vehicles?.map(vehicle => ({
-      id: vehicle.id,
-      registrationNumber: vehicle.registration_number,
-      model: vehicle.model,
-      capacity: vehicle.capacity,
-      fuelType: vehicle.fuel_type,
-      insuranceExpiry: vehicle.insurance_expiry,
-      fitnessExpiry: vehicle.fitness_expiry,
-      lastMaintenance: vehicle.last_maintenance,
-      nextMaintenance: vehicle.next_maintenance,
-      status: vehicle.status,
-      assignedRouteId: vehicle.assigned_route_id,
-      mileage: vehicle.mileage,
-      purchaseDate: vehicle.purchase_date,
-      chassisNumber: vehicle.chassis_number,
-      engineNumber: vehicle.engine_number,
-      createdAt: vehicle.created_at,
-      updatedAt: vehicle.updated_at
-    })) || [];
+    return NextResponse.json({ 
+      success: true, 
+      data: vehicles || [],
+      count: vehicles?.length || 0
+    });
 
-    return NextResponse.json(transformedVehicles, { status: 200 });
   } catch (error) {
-    console.error('Error in vehicles API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Vehicles API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

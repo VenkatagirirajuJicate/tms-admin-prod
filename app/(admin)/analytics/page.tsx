@@ -66,23 +66,23 @@ const AnalyticsPage = () => {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      const [payments, students, routes, drivers, vehicles, grievances, bookings] = await Promise.all([
-        DatabaseService.getPayments(),
-        fetch('/api/admin/students').then(res => res.json()).then(data => data.data || []),
-        DatabaseService.getRoutes(),
-        DatabaseService.getDrivers(),
-        DatabaseService.getVehicles(),
-        DatabaseService.getGrievances(),
-        DatabaseService.getBookings()
-      ]);
+      const response = await fetch('/api/admin/analytics');
+      const result = await response.json();
       
-      setPaymentsData(payments);
-      setStudentsData(students);
-      setRoutesData(routes);
-      setDriversData(drivers);
-      setVehiclesData(vehicles);
-      setGrievancesData(grievances);
-      setBookingsData(bookings);
+      if (response.ok && result.success) {
+        const { payments, students, routes, drivers, vehicles, grievances, bookings } = result.data;
+        
+        setPaymentsData(payments);
+        setStudentsData(students);
+        setRoutesData(routes);
+        setDriversData(drivers);
+        setVehiclesData(vehicles);
+        setGrievancesData(grievances);
+        setBookingsData(bookings);
+      } else {
+        console.error('Error fetching analytics data:', result.error);
+        toast.error('Failed to load analytics data');
+      }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       toast.error('Failed to load analytics data');

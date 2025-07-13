@@ -90,17 +90,19 @@ const DashboardPage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const [stats, activities, alerts, metrics] = await Promise.all([
-          DatabaseService.getDashboardStats(),
-          DatabaseService.getRecentActivities(5),
-          DatabaseService.getCriticalAlerts(),
-          DatabaseService.getPerformanceMetrics()
-        ]);
-
-        setDashboardStats(stats);
-        setRecentActivities(activities);
-        setCriticalAlerts(alerts);
-        setPerformanceMetrics(metrics);
+        const response = await fetch('/api/admin/dashboard');
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          const { stats, recentActivities, criticalAlerts, performanceMetrics } = result.data;
+          setDashboardStats(stats);
+          setRecentActivities(recentActivities);
+          setCriticalAlerts(criticalAlerts);
+          setPerformanceMetrics(performanceMetrics);
+        } else {
+          console.error('Error fetching dashboard data:', result.error);
+          toast.error('Failed to load dashboard data');
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         toast.error('Failed to load dashboard data');

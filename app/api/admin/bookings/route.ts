@@ -16,28 +16,28 @@ export async function GET() {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch drivers from database
-    const { data: drivers, error } = await supabase
-      .from('drivers')
+    // Fetch bookings from database
+    const { data: bookings, error } = await supabase
+      .from('bookings')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch drivers' },
+        { error: 'Failed to fetch bookings' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ 
       success: true, 
-      data: drivers || [],
-      count: drivers?.length || 0
+      data: bookings || [],
+      count: bookings?.length || 0
     });
 
   } catch (error) {
-    console.error('Drivers API Error:', error);
+    console.error('Bookings API Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
