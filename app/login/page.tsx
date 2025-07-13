@@ -18,7 +18,6 @@ import {
   Loader2
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types';
 
 const roleConfig = {
@@ -97,53 +96,37 @@ const LoginPage = () => {
     setIsLoading(true);
     
     try {
-      // Query the admin_login_mapping table to authenticate
-      const { data: loginData, error: loginError } = await supabase
-        .from('admin_login_mapping')
-        .select('admin_user_id, password')
-        .eq('admin_id', adminId.toUpperCase())
-        .single();
+      // Call the login API route
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adminId: adminId.toUpperCase(),
+          password: password
+        }),
+      });
 
-      if (loginError || !loginData) {
-        toast.error('Invalid Admin ID');
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Login failed');
         setIsLoading(false);
         return;
       }
 
-      // For demo purposes, we'll check against plain text password
-      // In production, you'd hash the input password and compare
-      if (loginData.password !== password) {
-        toast.error('Invalid password');
-        setIsLoading(false);
-        return;
+      if (data.success && data.user) {
+        // Store user in localStorage
+        localStorage.setItem('adminUser', JSON.stringify(data.user));
+
+        toast.success(`Welcome back, ${data.user.name}!`);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
+      } else {
+        toast.error('Login failed. Please try again.');
       }
-
-      // Get full admin user details
-      const { data: adminUser, error: userError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('id', loginData.admin_user_id)
-        .single();
-
-      if (userError || !adminUser) {
-        toast.error('User details not found');
-        setIsLoading(false);
-        return;
-      }
-
-      // Store user in localStorage
-      localStorage.setItem('adminUser', JSON.stringify({
-        id: adminUser.id,
-        name: adminUser.name,
-        role: adminUser.role,
-        email: adminUser.email,
-        adminId: adminId.toUpperCase()
-      }));
-
-      toast.success(`Welcome back, ${adminUser.name}!`);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
 
     } catch (error) {
       console.error('Login error:', error);
