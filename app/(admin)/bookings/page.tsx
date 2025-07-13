@@ -183,10 +183,25 @@ const BookingsPage = () => {
       setLoading(true);
       setError(null);
       
-      const [bookingsData, routesData] = await Promise.all([
-        DatabaseService.getBookings(),
-        DatabaseService.getRoutes()
+      // Fetch bookings and routes using API routes
+      const [bookingsResponse, routesResponse] = await Promise.all([
+        fetch('/api/admin/bookings'),
+        fetch('/api/admin/routes')
       ]);
+      
+      const bookingsResult = await bookingsResponse.json();
+      const routesResult = await routesResponse.json();
+      
+      if (!bookingsResult.success) {
+        throw new Error(bookingsResult.error || 'Failed to fetch bookings');
+      }
+      
+      if (!routesResult.success) {
+        throw new Error(routesResult.error || 'Failed to fetch routes');
+      }
+      
+      const bookingsData = bookingsResult.data || [];
+      const routesData = routesResult.data || [];
       
       setBookings(bookingsData);
       setRoutes(routesData);

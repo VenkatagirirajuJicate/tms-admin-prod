@@ -525,8 +525,16 @@ const EditStudentModal = ({ isOpen, onClose, onSave, student }: any) => {
   const fetchRoutes = async () => {
     try {
       setRoutesLoading(true);
-      const routes = await DatabaseService.getRoutes();
-      setRoutesData(routes || []);
+      
+      // Fetch routes using API route
+      const response = await fetch('/api/admin/routes');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch routes');
+      }
+      
+      setRoutesData(result.data || []);
     } catch (error) {
       console.error('Error fetching routes:', error);
       setRoutesData([]);
@@ -548,7 +556,7 @@ const EditStudentModal = ({ isOpen, onClose, onSave, student }: any) => {
       
       const route = await DatabaseService.getRouteById(routeId);
       
-      if (route && route.stops && route.stops.length > 0) {
+      if (route && route.stops && Array.isArray(route.stops) && route.stops.length > 0) {
         // Sort stops by sequence_order or sequence_number
         const sortedStops = route.stops.sort((a: any, b: any) => 
           (a.sequence_order || a.sequence_number || 0) - (b.sequence_order || b.sequence_number || 0)
@@ -822,8 +830,16 @@ const AddStudentModal = ({ isOpen, onClose, onSave, selectedStudent }: any) => {
   const fetchRoutes = async () => {
     try {
       setRoutesLoading(true);
-      const routes = await DatabaseService.getRoutes();
-      setRoutesData(routes || []);
+      
+      // Fetch routes using API route
+      const response = await fetch('/api/admin/routes');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch routes');
+      }
+      
+      setRoutesData(result.data || []);
     } catch (error) {
       console.error('Error fetching routes:', error);
       setRoutesData([]);
@@ -845,7 +861,7 @@ const AddStudentModal = ({ isOpen, onClose, onSave, selectedStudent }: any) => {
       
       const route = await DatabaseService.getRouteById(routeId);
       
-      if (route && route.stops && route.stops.length > 0) {
+      if (route && route.stops && Array.isArray(route.stops) && route.stops.length > 0) {
         // Sort stops by sequence_order or sequence_number
         const sortedStops = route.stops.sort((a: any, b: any) => 
           (a.sequence_order || a.sequence_number || 0) - (b.sequence_order || b.sequence_number || 0)

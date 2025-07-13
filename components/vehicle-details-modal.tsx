@@ -64,9 +64,13 @@ const VehicleDetailsModal: React.FC<VehicleDetailsModalProps> = ({
       // If we have assigned_route_id but no route object, fetch route details
       if (vehicle.assigned_route_id && !vehicle.routes) {
         try {
-          const allRoutes = await DatabaseService.getRoutes();
-          routeInfo = allRoutes.find(r => r.id === vehicle.assigned_route_id);
-          console.log('Fetched route info:', routeInfo);
+          const routesResponse = await fetch('/api/admin/routes');
+          const routesResult = await routesResponse.json();
+          if (routesResult.success) {
+            const allRoutes = routesResult.data || [];
+            routeInfo = allRoutes.find((r: any) => r.id === vehicle.assigned_route_id);
+            console.log('Fetched route info:', routeInfo);
+          }
         } catch (error) {
           console.warn('Could not fetch route details:', error);
         }
@@ -75,17 +79,21 @@ const VehicleDetailsModal: React.FC<VehicleDetailsModalProps> = ({
       // If we have assigned driver based on route assignment
       if (routeInfo && routeInfo.driver_id && !vehicle.drivers) {
         try {
-          const allDrivers = await DatabaseService.getDrivers();
-          const foundDriver = allDrivers.find(d => d.id === routeInfo.driver_id);
-          if (foundDriver) {
-            driverInfo = {
-              id: foundDriver.id,
-              name: foundDriver.driver_name,
-              phone: foundDriver.phone_number,
-              email: foundDriver.email,
-              license_number: foundDriver.license_number,
-              status: foundDriver.status
-            };
+          const driversResponse = await fetch('/api/admin/drivers');
+          const driversResult = await driversResponse.json();
+          if (driversResult.success) {
+            const allDrivers = driversResult.data || [];
+            const foundDriver = allDrivers.find((d: any) => d.id === routeInfo.driver_id);
+            if (foundDriver) {
+              driverInfo = {
+                id: foundDriver.id,
+                name: foundDriver.driver_name,
+                phone: foundDriver.phone_number,
+                email: foundDriver.email,
+                license_number: foundDriver.license_number,
+                status: foundDriver.status
+              };
+            }
           }
           console.log('Fetched driver info:', driverInfo);
         } catch (error) {

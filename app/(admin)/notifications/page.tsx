@@ -226,8 +226,28 @@ const NotificationsPage = () => {
       setLoading(true);
       setError(null);
       
-      const data = await DatabaseService.getNotifications();
-      setNotifications(data);
+      // Get user data from localStorage
+      const userData = localStorage.getItem('adminUser');
+      if (!userData) {
+        throw new Error('No admin user found');
+      }
+      
+      const adminUser = JSON.parse(userData);
+      const adminId = adminUser.id;
+      
+      if (!adminId) {
+        throw new Error('Admin ID not found');
+      }
+      
+      // Fetch notifications using API route
+      const response = await fetch(`/api/admin/notifications?adminId=${adminId}`);
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch notifications');
+      }
+      
+      setNotifications(result.data || []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError('Failed to load notifications data');

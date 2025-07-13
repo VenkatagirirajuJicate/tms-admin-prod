@@ -167,7 +167,15 @@ const DriversPage = () => {
       setLoading(true);
       console.log('Fetching drivers...');
       
-      const driversData = await DatabaseService.getDrivers();
+      // Fetch drivers using API route
+      const response = await fetch('/api/admin/drivers');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch drivers');
+      }
+      
+      const driversData = result.data || [];
       console.log('Drivers data received:', driversData);
       
       setDrivers(Array.isArray(driversData) ? driversData : []);

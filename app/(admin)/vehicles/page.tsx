@@ -203,7 +203,16 @@ const VehiclesPage = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      const vehiclesData = await DatabaseService.getVehicles();
+      
+      // Fetch vehicles using API route
+      const response = await fetch('/api/admin/vehicles');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch vehicles');
+      }
+      
+      const vehiclesData = result.data || [];
       setVehicles(vehiclesData);
     } catch (error) {
       console.error('Error fetching vehicles:', error);

@@ -57,7 +57,13 @@ const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({
       console.log('Fetching detailed route info for route:', route?.id);
 
       // Get all route stops with detailed information
-      const routeStops = await DatabaseService.getRouteStops(route.id);
+      const stopsResponse = await fetch('/api/admin/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getRouteStops', routeId: route.id })
+      });
+      const stopsResult = await stopsResponse.json();
+      const routeStops = stopsResult.success ? stopsResult.data : [];
       console.log('Route stops fetched:', routeStops);
 
       // Fetch driver and vehicle details if we have IDs but not full objects
@@ -67,20 +73,24 @@ const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({
       // If we have driver_id but no driver object, fetch driver details
       if (route.driver_id && !route.drivers) {
         try {
-          const allDrivers = await DatabaseService.getDrivers();
-          const foundDriver = allDrivers.find(d => d.id === route.driver_id);
-          if (foundDriver) {
-            // Map the driver data to match expected structure
-            driverInfo = {
-              id: foundDriver.id,
-              name: foundDriver.driver_name,
-                              phone: foundDriver.phone_number,
-              email: foundDriver.email,
-              license_number: foundDriver.license_number,
-              rating: foundDriver.rating,
-              status: foundDriver.status
-            };
-            console.log('Fetched driver info:', driverInfo);
+          const driversResponse = await fetch('/api/admin/drivers');
+          const driversResult = await driversResponse.json();
+          if (driversResult.success) {
+            const allDrivers = driversResult.data || [];
+            const foundDriver = allDrivers.find((d: any) => d.id === route.driver_id);
+            if (foundDriver) {
+              // Map the driver data to match expected structure
+              driverInfo = {
+                id: foundDriver.id,
+                name: foundDriver.driver_name,
+                phone: foundDriver.phone_number,
+                email: foundDriver.email,
+                license_number: foundDriver.license_number,
+                rating: foundDriver.rating,
+                status: foundDriver.status
+              };
+              console.log('Fetched driver info:', driverInfo);
+            }
           }
         } catch (error) {
           console.warn('Could not fetch driver details:', error);
@@ -90,19 +100,23 @@ const RouteDetailsModal: React.FC<RouteDetailsModalProps> = ({
       // If we have vehicle_id but no vehicle object, fetch vehicle details
       if (route.vehicle_id && !route.vehicles) {
         try {
-          const allVehicles = await DatabaseService.getVehicles();
-          const foundVehicle = allVehicles.find(v => v.id === route.vehicle_id);
-          if (foundVehicle) {
-            // Map vehicle data to match expected structure
-            vehicleInfo = {
-              id: foundVehicle.id,
-              registration_number: foundVehicle.registration_number || foundVehicle.vehicle_number,
-              model: foundVehicle.model,
-              capacity: foundVehicle.capacity,
-              fuel_type: foundVehicle.fuel_type,
-              status: foundVehicle.status
-            };
-            console.log('Fetched vehicle info:', vehicleInfo);
+          const vehiclesResponse = await fetch('/api/admin/vehicles');
+          const vehiclesResult = await vehiclesResponse.json();
+          if (vehiclesResult.success) {
+            const allVehicles = vehiclesResult.data || [];
+            const foundVehicle = allVehicles.find((v: any) => v.id === route.vehicle_id);
+            if (foundVehicle) {
+              // Map vehicle data to match expected structure
+              vehicleInfo = {
+                id: foundVehicle.id,
+                registration_number: foundVehicle.registration_number || foundVehicle.vehicle_number,
+                model: foundVehicle.model,
+                capacity: foundVehicle.capacity,
+                fuel_type: foundVehicle.fuel_type,
+                status: foundVehicle.status
+              };
+              console.log('Fetched vehicle info:', vehicleInfo);
+            }
           }
         } catch (error) {
           console.warn('Could not fetch vehicle details:', error);

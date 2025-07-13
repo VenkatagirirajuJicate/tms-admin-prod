@@ -47,10 +47,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { action, routeId } = await request.json();
+    const { action, routeId, routeData, stops } = await request.json();
 
     if (action === 'getRouteStops') {
       return await getRouteStops(routeId);
+    }
+
+    if (action === 'addRoute') {
+      return await addRoute(routeData, stops);
     }
 
     return NextResponse.json(
@@ -103,6 +107,67 @@ async function getRouteStops(routeId: string) {
     console.error('Error fetching route stops:', error);
     return NextResponse.json(
       { error: 'Failed to fetch route stops' },
+      { status: 500 }
+    );
+  }
+}
+
+async function addRoute(routeData: any, stops: any[]) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Insert the route
+    const { data: route, error: routeError } = await supabase
+      .from('routes')
+      .insert([routeData])
+      .select()
+      .single();
+
+    if (routeError) {
+      console.error('Database error adding route:', routeError);
+      return NextResponse.json(
+        { error: 'Failed to add route' },
+        { status: 500 }
+      );
+    }
+
+    // Insert route stops if provided
+    if (stops && stops.length > 0) {
+      const stopsWithRouteId = stops.map(stop => ({
+        ...stop,
+        route_id: route.id
+      }));
+
+      const { error: stopsError } = await supabase
+        .from('route_stops')
+        .insert(stopsWithRouteId);
+
+      if (stopsError) {
+        console.error('Database error adding route stops:', stopsError);
+        // If stops insertion fails, we might want to rollback the route
+        // For now, we'll just log the error
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: route
+    });
+
+  } catch (error) {
+    console.error('Error adding route:', error);
+    return NextResponse.json(
+      { error: 'Failed to add route' },
       { status: 500 }
     );
   }

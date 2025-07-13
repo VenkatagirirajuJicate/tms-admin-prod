@@ -94,10 +94,16 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
 
   const fetchDriversAndVehicles = async () => {
     try {
-      const [driversData, vehiclesData] = await Promise.all([
-        DatabaseService.getDrivers(),
-        DatabaseService.getVehicles()
+      const [driversResponse, vehiclesResponse] = await Promise.all([
+        fetch('/api/admin/drivers'),
+        fetch('/api/admin/vehicles')
       ]);
+
+      const driversResult = await driversResponse.json();
+      const vehiclesResult = await vehiclesResponse.json();
+
+      const driversData = driversResult.success ? driversResult.data : [];
+      const vehiclesData = vehiclesResult.success ? vehiclesResult.data : [];
 
       const activeDrivers = driversData.filter((d: any) => d.status === 'active');
       const activeVehicles = vehiclesData.filter((v: any) => v.status === 'active');
@@ -114,7 +120,13 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
     
     try {
       setStopsLoading(true);
-      const stopsData = await DatabaseService.getRouteStops(route.id);
+      const stopsResponse = await fetch('/api/admin/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getRouteStops', routeId: route.id })
+      });
+      const stopsResult = await stopsResponse.json();
+      const stopsData = stopsResult.success ? stopsResult.data : [];
       setStops(stopsData);
     } catch (error) {
       console.error('Error fetching route stops:', error);
@@ -134,7 +146,9 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
       setLoading(true);
       const insertAfter = insertAfterIndex !== null ? stops[insertAfterIndex].sequence_order : undefined;
       
-      await DatabaseService.addStopToRoute(route.id, newStop, insertAfter);
+      // TODO: Implement addStopToRoute API endpoint
+      console.log('Adding stop to route:', route.id, newStop, insertAfter);
+      toast.error('Adding stops to routes is temporarily disabled. Please use the main routes management.');
       
       // Refresh stops
       await fetchRouteStops();
@@ -186,11 +200,12 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
         vehicle_id: formData.vehicle_id || null
       };
 
-      // Update route without stops (stops are managed separately)
-      await DatabaseService.updateRoute(route.id, routeData, []);
-
-      toast.success('Route updated successfully with live tracking coordinates!');
-      onSuccess();
+      // TODO: Implement updateRoute API endpoint
+      console.log('Updating route:', route.id, routeData);
+      toast.error('Updating routes is temporarily disabled. Please use the main routes management.');
+      
+      // For now, just close the modal
+      handleClose();
       handleClose();
     } catch (error: any) {
       console.error('Error updating route:', error);

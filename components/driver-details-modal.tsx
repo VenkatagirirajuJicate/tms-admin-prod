@@ -57,9 +57,13 @@ const DriverDetailsModal = ({ isOpen, onClose, driver }: DriverDetailsModalProps
       // If we have assigned_route_id but no route object, fetch route details
       if (driver.assigned_route_id && !driver.routes) {
         try {
-          const allRoutes = await DatabaseService.getRoutes();
-          routeInfo = allRoutes.find(r => r.id === driver.assigned_route_id);
-          console.log('Fetched route info:', routeInfo);
+          const routesResponse = await fetch('/api/admin/routes');
+          const routesResult = await routesResponse.json();
+          if (routesResult.success) {
+            const allRoutes = routesResult.data || [];
+            routeInfo = allRoutes.find((r: any) => r.id === driver.assigned_route_id);
+            console.log('Fetched route info:', routeInfo);
+          }
         } catch (error) {
           console.warn('Could not fetch route details:', error);
         }
@@ -68,17 +72,21 @@ const DriverDetailsModal = ({ isOpen, onClose, driver }: DriverDetailsModalProps
       // If we have route with vehicle assignment
       if (routeInfo && routeInfo.vehicle_id && !driver.vehicles) {
         try {
-          const allVehicles = await DatabaseService.getVehicles();
-          const foundVehicle = allVehicles.find(v => v.id === routeInfo.vehicle_id);
-          if (foundVehicle) {
-            vehicleInfo = {
-              id: foundVehicle.id,
-              registration_number: foundVehicle.registration_number || foundVehicle.vehicle_number,
-              model: foundVehicle.model,
-              capacity: foundVehicle.capacity,
-              fuel_type: foundVehicle.fuel_type,
-              status: foundVehicle.status
-            };
+          const vehiclesResponse = await fetch('/api/admin/vehicles');
+          const vehiclesResult = await vehiclesResponse.json();
+          if (vehiclesResult.success) {
+            const allVehicles = vehiclesResult.data || [];
+            const foundVehicle = allVehicles.find((v: any) => v.id === routeInfo.vehicle_id);
+            if (foundVehicle) {
+              vehicleInfo = {
+                id: foundVehicle.id,
+                registration_number: foundVehicle.registration_number || foundVehicle.vehicle_number,
+                model: foundVehicle.model,
+                capacity: foundVehicle.capacity,
+                fuel_type: foundVehicle.fuel_type,
+                status: foundVehicle.status
+              };
+            }
           }
           console.log('Fetched vehicle info:', vehicleInfo);
         } catch (error) {

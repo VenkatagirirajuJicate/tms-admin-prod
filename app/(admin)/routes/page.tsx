@@ -227,7 +227,15 @@ const RoutesPage = () => {
       setLoading(true);
       console.log('Fetching routes...');
       
-      const routesData = await DatabaseService.getRoutes();
+      // Fetch routes using API route
+      const routesResponse = await fetch('/api/admin/routes');
+      const routesResult = await routesResponse.json();
+      
+      if (!routesResult.success) {
+        throw new Error(routesResult.error || 'Failed to fetch routes');
+      }
+      
+      const routesData = routesResult.data || [];
       console.log('Routes data received:', routesData);
       
       // Cache drivers and vehicles data to avoid repeated API calls
@@ -239,7 +247,13 @@ const RoutesPage = () => {
         (routesData || []).map(async (route) => {
           try {
             // Fetch route stops for each route to ensure accurate count
-            const routeStops = await DatabaseService.getRouteStops(route.id);
+            const stopsResponse = await fetch('/api/admin/routes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'getRouteStops', routeId: route.id })
+            });
+            const stopsResult = await stopsResponse.json();
+            const routeStops = stopsResult.success ? stopsResult.data : [];
             
             // Fetch driver and vehicle info if needed
             let driverInfo = route.drivers;
@@ -250,7 +264,9 @@ const RoutesPage = () => {
               try {
                 // Fetch drivers data only once and cache it
                 if (!allDrivers) {
-                  allDrivers = await DatabaseService.getDrivers();
+                  const driversResponse = await fetch('/api/admin/drivers');
+                  const driversResult = await driversResponse.json();
+                  allDrivers = driversResult.success ? driversResult.data : [];
                 }
                 const foundDriver = allDrivers.find((d: any) => d.id === route.driver_id);
                 if (foundDriver) {
@@ -272,7 +288,9 @@ const RoutesPage = () => {
               try {
                 // Fetch vehicles data only once and cache it
                 if (!allVehicles) {
-                  allVehicles = await DatabaseService.getVehicles();
+                  const vehiclesResponse = await fetch('/api/admin/vehicles');
+                  const vehiclesResult = await vehiclesResponse.json();
+                  allVehicles = vehiclesResult.success ? vehiclesResult.data : [];
                 }
                 const foundVehicle = allVehicles.find((v: any) => v.id === route.vehicle_id);
                 if (foundVehicle) {

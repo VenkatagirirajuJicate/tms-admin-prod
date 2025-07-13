@@ -97,10 +97,16 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
 
   const fetchDriversAndVehicles = async () => {
     try {
-      const [driversData, vehiclesData] = await Promise.all([
-        DatabaseService.getDrivers(),
-        DatabaseService.getVehicles()
+      const [driversResponse, vehiclesResponse] = await Promise.all([
+        fetch('/api/admin/drivers'),
+        fetch('/api/admin/vehicles')
       ]);
+
+      const driversResult = await driversResponse.json();
+      const vehiclesResult = await vehiclesResponse.json();
+
+      const driversData = driversResult.success ? driversResult.data : [];
+      const vehiclesData = vehiclesResult.success ? vehiclesResult.data : [];
 
       const activeDrivers = driversData.filter((d: any) => d.status === 'active');
       const activeVehicles = vehiclesData.filter((v: any) => v.status === 'active');
@@ -394,7 +400,17 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
         vehicle_id: formData.vehicle_id || null
       };
 
-      await DatabaseService.addRoute(routeData, stops);
+      const response = await fetch('/api/admin/routes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'addRoute', routeData, stops })
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add route');
+      }
 
       toast.success('Route added successfully with coordinates for live tracking!');
       onSuccess();
