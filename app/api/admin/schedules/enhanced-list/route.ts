@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    // Create Supabase client with service role key for admin operations
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { searchParams } = new URL(request.url);
     
     const status = searchParams.get('status') || 'all';
@@ -96,11 +107,11 @@ export async function GET(request: NextRequest) {
     const transformedSchedules = schedules?.map(schedule => ({
       id: schedule.id,
       route: {
-        id: schedule.routes?.id || '',
-        routeNumber: schedule.routes?.route_number || '',
-        routeName: schedule.routes?.route_name || '',
-        startLocation: schedule.routes?.start_location || '',
-        endLocation: schedule.routes?.end_location || ''
+        id: (schedule.routes as any)?.id || '',
+        routeNumber: (schedule.routes as any)?.route_number || '',
+        routeName: (schedule.routes as any)?.route_name || '',
+        startLocation: (schedule.routes as any)?.start_location || '',
+        endLocation: (schedule.routes as any)?.end_location || ''
       },
       scheduleDate: schedule.schedule_date,
       departureTime: schedule.departure_time,
