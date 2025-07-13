@@ -247,7 +247,10 @@ const NotificationsPage = () => {
         throw new Error(result.error || 'Failed to fetch notifications');
       }
       
-      setNotifications(result.data || []);
+      // The API returns { data: { notifications: [...] } }
+      const notificationsData = result.data?.notifications || [];
+      console.log('Notifications data received:', notificationsData);
+      setNotifications(Array.isArray(notificationsData) ? notificationsData : []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError('Failed to load notifications data');

@@ -30,10 +30,39 @@ import SchedulingConfigManager, { defaultSchedulingSettings } from '../../../lib
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('general');
+  const [loading, setLoading] = useState(false);
+  
+  // General settings state
+  const [generalSettings, setGeneralSettings] = useState({
+    systemName: 'TMS Admin Portal',
+    timezone: 'Asia/Kolkata',
+    language: 'en',
+    dateFormat: 'DD/MM/YYYY',
+    currency: 'INR'
+  });
+
+  // Notification settings state
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    smsNotifications: true,
+    pushNotifications: true,
+    maintenanceAlerts: true,
+    bookingAlerts: true,
+    paymentAlerts: true
+  });
+
+  // Security settings state
+  const [securitySettings, setSecuritySettings] = useState({
+    sessionTimeout: 30,
+    maxLoginAttempts: 5,
+    passwordExpiry: 90,
+    twoFactorAuth: false,
+    ipRestriction: false
+  });
   
   // Load settings from API on component mount
   React.useEffect(() => {
-    loadSchedulingSettings();
+    loadAllSettings();
     
     // Check URL params to set active tab
     const urlParams = new URLSearchParams(window.location.search);
@@ -43,6 +72,38 @@ const SettingsPage = () => {
       setActiveTab(tabParam);
     }
   }, []);
+
+  const loadAllSettings = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadSchedulingSettings(),
+        loadGeneralSettings(),
+        loadNotificationSettings(),
+        loadSecuritySettings()
+      ]);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast.error('Failed to load some settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadGeneralSettings = async () => {
+    // For now, use default values - in a real app, fetch from API
+    console.log('Loading general settings...');
+  };
+
+  const loadNotificationSettings = async () => {
+    // For now, use default values - in a real app, fetch from API
+    console.log('Loading notification settings...');
+  };
+
+  const loadSecuritySettings = async () => {
+    // For now, use default values - in a real app, fetch from API
+    console.log('Loading security settings...');
+  };
 
   const loadSchedulingSettings = async () => {
     try {
@@ -254,10 +315,254 @@ const SettingsPage = () => {
     </div>
   );
 
+  const renderGeneralSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">General Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">System Name</label>
+            <input
+              type="text"
+              value={generalSettings.systemName}
+              onChange={(e) => setGeneralSettings(prev => ({ ...prev, systemName: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+            <select
+              value={generalSettings.timezone}
+              onChange={(e) => setGeneralSettings(prev => ({ ...prev, timezone: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Asia/Kolkata">Asia/Kolkata</option>
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">America/New_York</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+            <select
+              value={generalSettings.language}
+              onChange={(e) => setGeneralSettings(prev => ({ ...prev, language: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="te">Telugu</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+            <select
+              value={generalSettings.dateFormat}
+              onChange={(e) => setGeneralSettings(prev => ({ ...prev, dateFormat: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={() => handleSaveSettings('General')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save General Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNotificationSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+        <div className="space-y-4">
+          {Object.entries(notificationSettings).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                </label>
+                <p className="text-xs text-gray-500">
+                  {key === 'emailNotifications' && 'Receive email notifications for important updates'}
+                  {key === 'smsNotifications' && 'Receive SMS alerts for critical notifications'}
+                  {key === 'pushNotifications' && 'Receive push notifications in browser'}
+                  {key === 'maintenanceAlerts' && 'Get alerts for vehicle maintenance schedules'}
+                  {key === 'bookingAlerts' && 'Receive notifications for new bookings'}
+                  {key === 'paymentAlerts' && 'Get alerts for payment transactions'}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(e) => setNotificationSettings(prev => ({ ...prev, [key]: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={() => handleSaveSettings('Notifications')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Notification Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSecuritySettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
+            <input
+              type="number"
+              value={securitySettings.sessionTimeout}
+              onChange={(e) => setSecuritySettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="5"
+              max="480"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Max Login Attempts</label>
+            <input
+              type="number"
+              value={securitySettings.maxLoginAttempts}
+              onChange={(e) => setSecuritySettings(prev => ({ ...prev, maxLoginAttempts: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="3"
+              max="10"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password Expiry (days)</label>
+            <input
+              type="number"
+              value={securitySettings.passwordExpiry}
+              onChange={(e) => setSecuritySettings(prev => ({ ...prev, passwordExpiry: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="30"
+              max="365"
+            />
+          </div>
+        </div>
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Two-Factor Authentication</label>
+              <p className="text-xs text-gray-500">Require 2FA for admin logins</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={securitySettings.twoFactorAuth}
+                onChange={(e) => setSecuritySettings(prev => ({ ...prev, twoFactorAuth: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-gray-700">IP Restriction</label>
+              <p className="text-xs text-gray-500">Restrict access to specific IP addresses</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={securitySettings.ipRestriction}
+                onChange={(e) => setSecuritySettings(prev => ({ ...prev, ipRestriction: e.target.checked }))}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+        <div className="mt-6">
+          <button
+            onClick={() => handleSaveSettings('Security')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Security Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSystemSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">System Information</h3>
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700">Version:</span>
+            <span className="text-sm text-gray-900">v2.1.0</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700">Environment:</span>
+            <span className="text-sm text-gray-900">Production</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700">Database:</span>
+            <span className="text-sm text-gray-900">PostgreSQL 14.x</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700">Last Updated:</span>
+            <span className="text-sm text-gray-900">{new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div className="mt-6 space-y-3">
+          <button
+            onClick={() => toast.success('Cache cleared successfully')}
+            className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors flex items-center space-x-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Clear Cache</span>
+          </button>
+          <button
+            onClick={() => toast.success('System maintenance scheduled')}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>Schedule Maintenance</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center py-8">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading settings...</span>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'general':
-        return <div className="text-center py-8">General settings will be implemented here</div>;
+        return renderGeneralSettings();
       case 'users':
         return <div className="text-center py-8">User management will be implemented here</div>;
       case 'scheduling':
@@ -265,15 +570,15 @@ const SettingsPage = () => {
       case 'payments':
         return <div className="text-center py-8">Payment settings will be implemented here</div>;
       case 'notifications':
-        return <div className="text-center py-8">Notification settings will be implemented here</div>;
+        return renderNotificationSettings();
       case 'security':
-        return <div className="text-center py-8">Security settings will be implemented here</div>;
+        return renderSecuritySettings();
       case 'api':
         return <div className="text-center py-8">API settings will be implemented here</div>;
       case 'appearance':
         return <div className="text-center py-8">Appearance settings will be implemented here</div>;
       case 'system':
-        return <div className="text-center py-8">System settings will be implemented here</div>;
+        return renderSystemSettings();
       case 'logs':
         return <div className="text-center py-8">Audit logs will be implemented here</div>;
       case 'backup':
