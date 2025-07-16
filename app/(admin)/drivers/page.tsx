@@ -39,6 +39,8 @@ import { DatabaseService } from '@/lib/database';
 import AddDriverModal from '@/components/add-driver-modal';
 import EditDriverModal from '@/components/edit-driver-modal';
 import DriverDetailsModal from '@/components/driver-details-modal';
+import UniversalStatCard from '@/components/universal-stat-card';
+import { createDriverStats, safeNumber } from '@/lib/stat-utils';
 
 const DriverCard = ({ driver, onEdit, onDelete, onView, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
@@ -267,52 +269,33 @@ const DriversPage = () => {
         )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <UserCheck className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Drivers</p>
-              <p className="text-xl font-bold text-gray-900">{totalDrivers}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Activity className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Active</p>
-              <p className="text-xl font-bold text-gray-900">{activeDrivers}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">On Leave</p>
-              <p className="text-xl font-bold text-gray-900">{onLeave}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Star className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Avg Rating</p>
-              <p className="text-xl font-bold text-gray-900">{averageRating.toFixed(1)}</p>
-            </div>
-          </div>
-        </div>
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+        {createDriverStats({
+          totalDrivers: totalDrivers,
+          activeDrivers: activeDrivers,
+          onLeave: onLeave,
+          avgRating: averageRating,
+          totalTrips: 0 // This would need to be calculated from data
+        }).map((stat, index) => (
+          <UniversalStatCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            subtitle={stat.subtitle}
+            icon={
+              index === 0 ? UserCheck :
+              index === 1 ? Activity :
+              index === 2 ? Calendar :
+              Star
+            }
+            trend={stat.trend}
+            color={stat.color}
+            variant="default"
+            loading={loading}
+            delay={index}
+          />
+        ))}
       </div>
 
       {/* Filters */}

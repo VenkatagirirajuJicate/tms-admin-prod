@@ -13,18 +13,18 @@ import {
   MessageCircle,
   BarChart3,
   Settings,
-  LogOut,
   Menu,
   X,
   Bus,
   UserCheck,
   Shield,
-  ClipboardList
+  FileText,
+  Search,
+  Power
 } from 'lucide-react';
 import { AdminUser, UserRole } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 import ErrorBoundary from '@/components/error-boundary';
-import AssignmentNotification from '@/components/assignment-notification';
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
@@ -32,78 +32,132 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
 
-  // Handle keyboard navigation
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && sidebarOpen) {
-        setSidebarOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [sidebarOpen]);
-
-  useEffect(() => {
-    const validateAndSetUser = () => {
-      const userData = localStorage.getItem('adminUser');
-      
-      if (!userData) {
-        router.push('/login');
-        return;
-      }
-
-      try {
-        const parsedUser = JSON.parse(userData);
-        
-        // Check if the parsed data has the required fields
-        if (!parsedUser.id || !parsedUser.email || !parsedUser.role || !parsedUser.name) {
-          localStorage.removeItem('adminUser');
-          toast.error('Invalid session data. Please login again.');
-          router.push('/login');
-          return;
-        }
-        
-        // For database-authenticated users, we just need to verify the data structure
-        // Create a user object in the expected format
-        const validUser: AdminUser = {
-          id: parsedUser.id,
-          name: parsedUser.name,
-          email: parsedUser.email,
-          role: parsedUser.role as UserRole,
-          avatar: '/api/placeholder/40/40', // Default avatar
-          permissions: [], // Permissions will be handled by role-based access
-          isActive: true,
-          lastLogin: new Date(),
-          createdAt: new Date()
-        };
-        
-          setUser(validUser);
-      } catch {
-        localStorage.removeItem('adminUser');
-        toast.error('Invalid session data. Please login again.');
-        router.push('/login');
-      }
-    };
-
     validateAndSetUser();
-  }, [router]);
+  }, []);
+
+  const validateAndSetUser = () => {
+    const storedUser = localStorage.getItem('adminUser');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Invalid user data in localStorage:', error);
+        localStorage.removeItem('adminUser');
+        router.push('/login');
+      }
+    } else {
+      router.push('/login');
+    }
+  };
 
   const allNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'transport_manager', 'finance_admin', 'operations_admin', 'data_entry'] },
-    { name: 'Routes', href: '/routes', icon: Route, roles: ['super_admin', 'transport_manager'] },
-    { name: 'Students', href: '/students', icon: Users, roles: ['super_admin', 'data_entry', 'finance_admin', 'operations_admin'] },
-    { name: 'Enrollment Requests', href: '/enrollment-requests', icon: ClipboardList, roles: ['super_admin', 'transport_manager'] },
-    { name: 'Drivers', href: '/drivers', icon: UserCheck, roles: ['super_admin', 'transport_manager'] },
-    { name: 'Vehicles', href: '/vehicles', icon: Car, roles: ['super_admin', 'transport_manager'] },
-    { name: 'Schedules', href: '/schedules', icon: Calendar, roles: ['super_admin', 'transport_manager'] },
-    { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['super_admin', 'finance_admin'] },
-    { name: 'Notifications', href: '/notifications', icon: Bell, roles: ['super_admin', 'operations_admin'] },
-    { name: 'Grievances', href: '/grievances', icon: MessageCircle, roles: ['super_admin', 'operations_admin'] },
-    { name: 'My Grievances', href: '/my-grievances', icon: UserCheck, roles: ['super_admin', 'transport_manager', 'finance_admin', 'operations_admin', 'data_entry'] },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3, roles: ['super_admin', 'transport_manager', 'finance_admin', 'operations_admin'] },
-    { name: 'Authorize', href: '/authorize', icon: Shield, roles: ['super_admin'] },
-    { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] }
+    // Overview
+    { 
+      name: 'Dashboard', 
+      href: '/dashboard', 
+      icon: LayoutDashboard, 
+      roles: ['super_admin', 'transport_admin', 'staff'],
+      group: 'overview'
+    },
+    { 
+      name: 'Analytics', 
+      href: '/analytics', 
+      icon: BarChart3, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'overview'
+    },
+    
+    // Transport
+    { 
+      name: 'Students', 
+      href: '/students', 
+      icon: Users, 
+      roles: ['super_admin', 'transport_admin', 'staff'],
+      group: 'transport'
+    },
+    { 
+      name: 'Drivers', 
+      href: '/drivers', 
+      icon: UserCheck, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    { 
+      name: 'Vehicles', 
+      href: '/vehicles', 
+      icon: Car, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    { 
+      name: 'Routes', 
+      href: '/routes', 
+      icon: Route, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    { 
+      name: 'Schedules', 
+      href: '/schedules', 
+      icon: Calendar, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    
+    // Services
+    { 
+      name: 'Enrollments', 
+      href: '/enrollment-requests', 
+      icon: FileText, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'services'
+    },
+    { 
+      name: 'Grievances', 
+      href: '/grievances', 
+      icon: MessageCircle, 
+      roles: ['super_admin', 'transport_admin', 'staff'],
+      group: 'services'
+    },
+    { 
+      name: 'My Grievances', 
+      href: '/my-grievances', 
+      icon: MessageCircle, 
+      roles: ['staff'],
+      group: 'services'
+    },
+    { 
+      name: 'Payments', 
+      href: '/payments', 
+      icon: CreditCard, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'services'
+    },
+    { 
+      name: 'Notifications', 
+      href: '/notifications', 
+      icon: Bell, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'services'
+    },
+    
+    // System
+    { 
+      name: 'Authorize', 
+      href: '/authorize', 
+      icon: Shield, 
+      roles: ['super_admin'],
+      group: 'system'
+    },
+    { 
+      name: 'Settings', 
+      href: '/settings', 
+      icon: Settings, 
+      roles: ['super_admin'],
+      group: 'system'
+    }
   ];
 
   const navigation = allNavigation
@@ -113,208 +167,193 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       current: pathname === item.href || pathname.startsWith(item.href + '/')
     }));
 
+  const groupedNavigation = navigation.reduce((acc, item) => {
+    if (!acc[item.group]) {
+      acc[item.group] = [];
+    }
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, typeof navigation>);
+
   const handleLogout = () => {
     localStorage.removeItem('adminUser');
     toast.success('Logged out successfully');
     router.push('/login');
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mx-auto"></div>
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-24 mx-auto"></div>
+          <div className="w-12 h-12 animate-pulse bg-green-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+            <Bus className="h-6 w-6 text-white" />
           </div>
-          <p className="mt-4 text-gray-600">Validating session...</p>
+          <p className="text-gray-600">Loading TMS Admin...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Toaster position="top-right" />
-      
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Sidebar - Always Fixed */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } flex flex-col`}>
-        {/* Sidebar Header - Fixed */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Bus className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">TMS Admin</h1>
-          </div>
-          <button
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-100">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 z-40 lg:hidden bg-black bg-opacity-50"
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-md hover:bg-gray-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          />
+        )}
 
-        {/* User Profile - Fixed */}
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">{user.name.charAt(0)}</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">{user.name}</p>
-              <p className="text-xs text-gray-500">{user.role.replace('_', ' ').toUpperCase()}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation - Scrollable */}
-        <nav className="flex-1 px-4 py-6 overflow-y-auto" role="navigation" aria-label="Main navigation">
-          <div className="space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.push(item.href);
-                    setSidebarOpen(false);
-                  }}
-                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                    item.current
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                  aria-current={item.current ? 'page' : undefined}
-                  aria-label={`Navigate to ${item.name}`}
-                >
-                  <Icon className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    item.current ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
-                  }`} aria-hidden="true" />
-                  <span>{item.name}</span>
-                </a>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* Logout Button - Fixed at Bottom */}
-        <div className="p-4 border-t border-gray-200 flex-shrink-0">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
-        {/* Fixed Navbar */}
-        <div className="fixed top-0 right-0 left-0 lg:left-64 z-30 bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-              
-              {/* TMS Branding and User Type */}
+        {/* Sidebar */}
+        <div className={`sidebar-modern ${sidebarOpen ? 'open' : ''}`}>
+          {/* Sidebar Header */}
+          <div className="sidebar-header">
+            <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center lg:hidden">
-                    <Bus className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold text-gray-900">TMS</h1>
-                    <p className="text-xs text-gray-500 hidden sm:block">{user.role.replace('_', ' ').toUpperCase()}</p>
-                  </div>
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                  <Bus className="w-6 h-6 text-white" />
                 </div>
-                
-                {/* Page Title */}
-                <div className="hidden sm:block">
-                  <span className="text-gray-300">|</span>
-                  <span className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                    {pathname.split('/').pop()?.replace('-', ' ') || 'Dashboard'}
-                  </span>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900">TMS Admin</h1>
+                  <p className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</p>
                 </div>
+              </div>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 lg:hidden"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="search-container">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search... (Ctrl+K)"
+                className="search-input"
+              />
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="sidebar-nav">
+            {Object.entries(groupedNavigation).map(([group, items]) => (
+              <div key={group} className="sidebar-section">
+                <div className="sidebar-section-title">
+                  {group === 'overview' ? 'OVERVIEW' : 
+                   group === 'transport' ? 'TRANSPORT' : 
+                   group === 'services' ? 'SERVICES' : 
+                   'SYSTEM'}
+                </div>
+                <div className="space-y-1">
+                  {items.map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push(item.href);
+                        setSidebarOpen(false);
+                      }}
+                      className={`sidebar-nav-item ${item.current ? 'active' : ''}`}
+                    >
+                      <item.icon className="icon" />
+                      <span>{item.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* User Profile */}
+          <div className="sidebar-user">
+            <div className="user-info">
+              <div className="user-avatar">
+                {getInitials(user.name || 'Admin')}
+              </div>
+              <div className="user-details">
+                <div className="user-name">{user.name}</div>
+                <div className="user-role capitalize">{user.role.replace('_', ' ')}</div>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              {/* Assignment Notifications */}
-              {user && <AssignmentNotification adminId={user.id} />}
-              
-              {/* System Status */}
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>System Operational</span>
-              </div>
-              
-              {/* Mobile User Info & Logout */}
-              <div className="lg:hidden flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold text-xs">{user.name.charAt(0)}</span>
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900 truncate max-w-24">{user.name}</p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                  title="Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-              
-              {/* Desktop User Info */}
-              <div className="hidden lg:flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold text-xs">{user.name.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.role.replace('_', ' ').toUpperCase()}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="btn-secondary w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Power className="w-4 h-4 mr-2" />
+              Sign Out
+            </button>
           </div>
         </div>
 
-        {/* Main content with independent scrolling */}
-        <main className="flex-1 overflow-y-auto pt-16 bg-gray-50">
-          <div className="p-4 sm:p-6 lg:p-8 min-h-full">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
+        {/* Main Content */}
+        <div className="main-content">
+          {/* Top Bar - Mobile Only */}
+          <div className="top-bar lg:hidden">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="top-bar-title">TMS Admin</div>
+            <div className="top-bar-actions">
+              <div className="user-avatar">
+                {getInitials(user.name || 'Admin')}
+              </div>
+            </div>
           </div>
-        </main>
+
+          {/* Page Content */}
+          <div className="content-body fade-in">
+            {children}
+          </div>
+        </div>
       </div>
-    </div>
+      
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'white',
+            color: '#1a1a1a',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            fontSize: '14px',
+          },
+          success: {
+            style: {
+              background: '#f0fdf4',
+              color: '#166534',
+              border: '1px solid #bbf7d0',
+            },
+          },
+          error: {
+            style: {
+              background: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+            },
+          },
+        }}
+      />
+    </ErrorBoundary>
   );
 };
 

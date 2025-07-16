@@ -25,11 +25,16 @@ import CreateScheduleModal from './create-schedule-modal';
 
 interface Route {
   id: string;
-  routeNumber: string;
-  routeName: string;
-  startLocation: string;
-  endLocation: string;
-  totalCapacity: number;
+  routeNumber?: string;
+  route_number?: string;
+  routeName?: string;
+  route_name?: string;
+  startLocation?: string;
+  start_location?: string;
+  endLocation?: string;
+  end_location?: string;
+  totalCapacity?: number;
+  total_capacity?: number;
   status: string;
 }
 
@@ -86,7 +91,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     const csvContent = [
       ['Route', 'Departure', 'Arrival', 'Booked', 'Available', 'Total', 'Status', 'Driver', 'Vehicle'].join(','),
       ...schedules.map(s => [
-        `${s.route.routeNumber} - ${s.route.routeName}`,
+        `${s.route.routeNumber || s.route.route_number} - ${s.route.routeName || s.route.route_name}`,
         s.departureTime,
         s.arrivalTime,
         s.bookedSeats,
@@ -215,13 +220,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                       <div className="lg:col-span-1">
                         <div className="flex items-start space-x-3">
                           <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-bold text-sm">{schedule.route.routeNumber}</span>
+                            <span className="text-white font-bold text-sm">{schedule.route.routeNumber || schedule.route.route_number}</span>
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900">{schedule.route.routeName}</h4>
+                            <h4 className="font-semibold text-gray-900">{schedule.route.routeName || schedule.route.route_name}</h4>
                             <div className="flex items-center text-sm text-gray-600 mt-1">
                               <MapPin className="w-4 h-4 mr-1" />
-                              <span>{schedule.route.startLocation} → {schedule.route.endLocation}</span>
+                              <span>{schedule.route.startLocation || schedule.route.start_location} → {schedule.route.endLocation || schedule.route.end_location}</span>
                             </div>
                             <div className="flex items-center space-x-2 mt-2">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(schedule.status)}`}>
@@ -325,10 +330,20 @@ export default function GlobalBookingCalendar({ isOpen, onClose }: GlobalBooking
   const loadRoutes = async () => {
     try {
       const response = await fetch('/api/admin/routes');
-      const data = await response.json();
-      setRoutes(data.filter((route: Route) => route.status === 'active'));
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch routes');
+      }
+      
+      const result = await response.json();
+      const routesData = result.success ? result.data || [] : [];
+      
+      // Ensure data is array and filter active routes
+      const validRoutesData = Array.isArray(routesData) ? routesData : [];
+      setRoutes(validRoutesData.filter((route: Route) => !route.status || route.status === 'active'));
     } catch (error) {
       console.error('Error loading routes:', error);
+      setRoutes([]); // Set empty array as fallback
     }
   };
 
@@ -470,7 +485,7 @@ export default function GlobalBookingCalendar({ isOpen, onClose }: GlobalBooking
                     <option value="all">All Routes</option>
                     {routes.map(route => (
                       <option key={route.id} value={route.id}>
-                        {route.routeNumber} - {route.routeName}
+                        {route.routeNumber || route.route_number} - {route.routeName || route.route_name}
                       </option>
                     ))}
                   </select>

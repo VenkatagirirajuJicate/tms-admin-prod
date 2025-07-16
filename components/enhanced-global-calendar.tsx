@@ -736,6 +736,17 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
                                 {day.totalSchedules} schedule{day.totalSchedules !== 1 ? 's' : ''}
                               </span>
                             </div>
+                            
+                            {/* Completed schedules indicator */}
+                            {day.schedules.some((s: any) => s.status === 'completed') && (
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                                <span className="text-xs text-purple-600">
+                                  {day.schedules.filter((s: any) => s.status === 'completed').length} completed
+                                </span>
+                              </div>
+                            )}
+                            
                             <div className="flex items-center space-x-1">
                               <div className={`w-2 h-2 rounded-full ${
                                 day.enabledSchedules === day.totalSchedules ? 'bg-green-500' :
@@ -758,6 +769,10 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span>Has Schedules</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                  <span>Completed Trips</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>

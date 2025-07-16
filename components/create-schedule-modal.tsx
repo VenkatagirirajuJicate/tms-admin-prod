@@ -20,15 +20,16 @@ import { formatDateForDatabase, getMinimumScheduleDate, canAdminEnableScheduleFo
 
 interface Route {
   id: string;
-  routeNumber: string;
-  routeName: string;
-  startLocation: string;
-  endLocation: string;
-  totalCapacity: number;
-  departureTime: string;
-  arrivalTime: string;
-  driverId?: string;
-  vehicleId?: string;
+  route_number: string;
+  route_name: string;
+  start_location: string;
+  end_location: string;
+  total_capacity: number;
+  departure_time: string;
+  arrival_time: string;
+  driver_id?: string;
+  vehicle_id?: string;
+  status?: string;
 }
 
 interface Driver {
@@ -81,18 +82,38 @@ export default function CreateScheduleModal({
         fetch('/api/admin/vehicles')
       ]);
 
-      const [routesData, driversData, vehiclesData] = await Promise.all([
+      // Check if all responses are successful
+      if (!routesRes.ok || !driversRes.ok || !vehiclesRes.ok) {
+        throw new Error('One or more API calls failed');
+      }
+
+      const [routesResult, driversResult, vehiclesResult] = await Promise.all([
         routesRes.json(),
         driversRes.json(),
         vehiclesRes.json()
       ]);
 
-      setRoutes(routesData.filter((r: Route) => r.status === 'active'));
-      setDrivers(driversData.filter((d: Driver) => d.status === 'active'));
-      setVehicles(vehiclesData.filter((v: Vehicle) => v.status === 'active'));
+      // Extract data from structured API responses
+      const routesData = routesResult.success ? routesResult.data || [] : [];
+      const driversData = driversResult.success ? driversResult.data || [] : [];
+      const vehiclesData = vehiclesResult.success ? vehiclesResult.data || [] : [];
+
+      // Ensure data is arrays before filtering
+      const validRoutesData = Array.isArray(routesData) ? routesData : [];
+      const validDriversData = Array.isArray(driversData) ? driversData : [];
+      const validVehiclesData = Array.isArray(vehiclesData) ? vehiclesData : [];
+
+      // Filter active items (routes might not have status field, so check if it exists)
+      setRoutes(validRoutesData.filter((r: any) => !r.status || r.status === 'active'));
+      setDrivers(validDriversData.filter((d: any) => !d.status || d.status === 'active'));
+      setVehicles(validVehiclesData.filter((v: any) => !v.status || v.status === 'active'));
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
+      // Set empty arrays as fallback
+      setRoutes([]);
+      setDrivers([]);
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -152,11 +173,11 @@ export default function CreateScheduleModal({
         return {
           routeId,
           scheduleDate: formatDateForDatabase(selectedDate),
-          departureTime: customTime?.departureTime || route.departureTime,
-          arrivalTime: customTime?.arrivalTime || route.arrivalTime,
-          availableSeats: route.totalCapacity,
-          driverId: route.driverId,
-          vehicleId: route.vehicleId,
+          departureTime: customTime?.departureTime || route.departure_time,
+          arrivalTime: customTime?.arrivalTime || route.arrival_time,
+          availableSeats: route.total_capacity,
+          driverId: route.driver_id,
+          vehicleId: route.vehicle_id,
           status: 'scheduled'
         };
       }).filter(Boolean);
@@ -284,11 +305,11 @@ export default function CreateScheduleModal({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-sm">{route.routeNumber}</span>
+                              <span className="text-white font-bold text-sm">{route.route_number}</span>
                             </div>
                             <div>
-                              <h4 className="font-medium text-gray-900">{route.routeName}</h4>
-                              <p className="text-sm text-gray-600">{route.startLocation} → {route.endLocation}</p>
+                              <h4 className="font-medium text-gray-900">{route.route_name}</h4>
+                              <p className="text-sm text-gray-600">{route.start_location} → {route.end_location}</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -303,11 +324,11 @@ export default function CreateScheduleModal({
                         <div className="mt-3 flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
                             <Clock className="w-4 h-4" />
-                            <span>{route.departureTime} - {route.arrivalTime}</span>
+                            <span>{route.departure_time} - {route.arrival_time}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Users className="w-4 h-4" />
-                            <span>{route.totalCapacity} seats</span>
+                            <span>{route.total_capacity} seats</span>
                           </div>
                         </div>
 
@@ -320,7 +341,7 @@ export default function CreateScheduleModal({
                                 <label className="block text-xs text-gray-600 mb-1">Departure Time</label>
                                 <input
                                   type="time"
-                                  value={customTimes[route.id]?.departureTime || route.departureTime}
+                                  value={customTimes[route.id]?.departureTime || route.departure_time}
                                   onChange={(e) => handleTimeChange(route.id, 'departureTime', e.target.value)}
                                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                                 />
@@ -329,7 +350,7 @@ export default function CreateScheduleModal({
                                 <label className="block text-xs text-gray-600 mb-1">Arrival Time</label>
                                 <input
                                   type="time"
-                                  value={customTimes[route.id]?.arrivalTime || route.arrivalTime}
+                                  value={customTimes[route.id]?.arrivalTime || route.arrival_time}
                                   onChange={(e) => handleTimeChange(route.id, 'arrivalTime', e.target.value)}
                                   className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                                 />
@@ -356,7 +377,7 @@ export default function CreateScheduleModal({
                     <div className="mt-2 text-sm text-blue-700">
                       Total capacity: {selectedRoutes.reduce((sum, routeId) => {
                         const route = routes.find(r => r.id === routeId);
-                        return sum + (route?.totalCapacity || 0);
+                        return sum + (route?.total_capacity || 0);
                       }, 0)} seats
                     </div>
                   </div>

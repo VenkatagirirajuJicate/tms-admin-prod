@@ -19,9 +19,23 @@ import {
   AlertCircle,
   Play,
   Check,
-  RefreshCw
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Award,
+  Zap,
+  Target,
+  Users,
+  Star,
+  BarChart3
 } from 'lucide-react';
 import AdminGrievanceGroupChatModal from '../../../components/admin-grievance-group-chat-modal';
+
+// Import enhanced components
+import EnhancedStatCard from '../../../components/enhanced-stat-card';
+import { EnhancedButton } from '../../../components/enhanced-form-components';
+import { LoadingSpinner, EmptyState } from '../../../components/enhanced-loading-states';
 
 // Utility function to format dates
 const formatDate = (dateString: string) => {
@@ -77,6 +91,62 @@ interface Summary {
   high_priority: number;
   urgent: number;
 }
+
+// Enhanced summary stats component
+const EnhancedSummaryStats = ({ summary }: { summary: Summary }) => {
+  const statsData = [
+    {
+      title: 'Total Assigned',
+      value: summary.total,
+      icon: MessageSquare,
+      color: 'blue' as const
+    },
+    {
+      title: 'Open',
+      value: summary.open,
+      icon: AlertCircle,
+      color: 'cyan' as const
+    },
+    {
+      title: 'In Progress',
+      value: summary.in_progress,
+      icon: Activity,
+      color: 'yellow' as const
+    },
+    {
+      title: 'Resolved',
+      value: summary.resolved,
+      icon: CheckCircle,
+      color: 'green' as const
+    },
+    {
+      title: 'High Priority',
+      value: summary.high_priority,
+      icon: AlertTriangle,
+      color: 'red' as const
+    },
+    {
+      title: 'Urgent',
+      value: summary.urgent,
+      icon: Zap,
+      color: 'red' as const
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      {statsData.map((stat, index) => (
+        <EnhancedStatCard
+          key={index}
+          title={stat.title}
+          value={stat.value}
+          icon={stat.icon}
+          color={stat.color}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function MyGrievancesPage() {
   const [grievances, setGrievances] = useState<Grievance[]>([]);
@@ -363,195 +433,63 @@ export default function MyGrievancesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+        <LoadingSpinner variant="default" size="xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="space-y-8 p-6 max-w-[1400px] mx-auto">
+      {/* Enhanced Header */}
+      <div className="card-enhanced">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Assigned Grievances</h1>
-            <p className="text-gray-600">Manage grievances assigned to you</p>
+            <h1 className="text-heading-1 gradient-text">My Assigned Grievances</h1>
+            <p className="text-body-lg text-gray-600 mt-2">Manage and resolve grievances assigned to you</p>
             {currentAdminId && (
-              <p className="text-sm text-blue-600 mt-1">
+              <p className="text-body-sm text-blue-600 mt-1">
                 Admin ID: {currentAdminId}
               </p>
             )}
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-right text-sm text-gray-500">
+            <div className="text-right text-body-sm text-gray-500">
               <p>Last updated</p>
-              <p>{new Date().toLocaleTimeString()}</p>
+              <p className="font-medium">{new Date().toLocaleTimeString()}</p>
             </div>
-            <button
+            <EnhancedButton
               onClick={() => {
                 console.log('🔄 Manual refresh triggered');
                 fetchAssignedGrievances();
               }}
               disabled={loading}
-              className={`px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2 ${
-                loading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              variant="primary"
+              size="md"
+              icon={RefreshCw}
+              loading={loading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>{loading ? 'Loading...' : 'Refresh'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-blue-900">Total</span>
-              <span className="text-lg font-bold text-blue-600">{summary.total}</span>
-            </div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-yellow-900">Active</span>
-              <span className="text-lg font-bold text-yellow-600">{summary.open + summary.in_progress}</span>
-            </div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-900">Resolved</span>
-              <span className="text-lg font-bold text-green-600">{summary.resolved}</span>
-            </div>
-          </div>
-          <div className="bg-red-50 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-red-900">Urgent</span>
-              <span className="text-lg font-bold text-red-600">{summary.urgent}</span>
-            </div>
+              {loading ? 'Loading...' : 'Refresh'}
+            </EnhancedButton>
           </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <User className="w-8 h-8 text-indigo-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.total}</p>
-            </div>
-          </div>
-        </motion.div>
+      {/* Enhanced Summary Stats */}
+      <EnhancedSummaryStats summary={summary} />
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <Clock className="w-8 h-8 text-blue-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Open</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.open}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <Edit className="w-8 h-8 text-yellow-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">In Progress</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.in_progress}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Resolved</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.resolved}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <AlertTriangle className="w-8 h-8 text-orange-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">High Priority</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.high_priority}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Urgent</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.urgent}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
-        >
-          <div className="flex items-center">
-            <CheckCircle className="w-8 h-8 text-gray-600" />
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Closed</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.closed}</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+      {/* Enhanced Filters */}
+      <div className="card-enhanced">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filters:</span>
+              <Filter className="w-5 h-5 text-gray-500" />
+              <span className="text-body font-medium text-gray-700">Filters:</span>
             </div>
             
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="input-enhanced"
             >
               <option value="all">All Status</option>
               <option value="open">Open</option>
@@ -563,7 +501,7 @@ export default function MyGrievancesPage() {
             <select
               value={filters.priority}
               onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-              className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="input-enhanced"
             >
               <option value="all">All Priority</option>
               <option value="urgent">Urgent</option>
@@ -574,54 +512,55 @@ export default function MyGrievancesPage() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-5 h-5 text-gray-500" />
             <input
               type="text"
               placeholder="Search grievances..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              className="input-enhanced"
             />
           </div>
         </div>
       </div>
 
-      {/* Grievances List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      {/* Enhanced Grievances List */}
+      <div className="card-enhanced">
+        <div className="border-b border-gray-200 pb-4 mb-6">
+          <h2 className="text-heading-3 text-gray-900">
             Assigned Grievances ({pagination.total})
           </h2>
         </div>
 
-        <div className="divide-y divide-gray-200">
+        <div className="space-y-4">
           {grievances.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No grievances found</h3>
-              <p className="text-gray-500">You don't have any assigned grievances matching the current filters.</p>
-            </div>
+            <EmptyState 
+              icon={MessageSquare}
+              title="No grievances found"
+              description="You don't have any assigned grievances matching the current filters."
+            />
           ) : (
             grievances.map((grievance) => (
               <motion.div
                 key={grievance.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="px-6 py-4 hover:bg-gray-50 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card-enhanced hover:shadow-lg transition-all duration-300 cursor-pointer"
+                onClick={() => setSelectedGrievance(grievance)}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{grievance.subject}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(grievance.priority)}`}>
+                    <div className="flex items-center space-x-3 mb-3">
+                      <h3 className="text-heading-5 text-gray-900">{grievance.subject}</h3>
+                      <span className={`badge ${getPriorityBadgeClass(grievance.priority)}`}>
                         {grievance.priority}
                       </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(grievance.status)}`}>
+                      <span className={`badge ${getStatusBadgeClass(grievance.status)}`}>
                         {grievance.status.replace('_', ' ')}
                       </span>
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
+                    <div className="flex items-center space-x-6 text-body-sm text-gray-500 mb-3">
                       <span className="flex items-center">
                         <User className="w-4 h-4 mr-1" />
                         {grievance.student.student_name} ({grievance.student.roll_number})
@@ -635,68 +574,37 @@ export default function MyGrievancesPage() {
                       )}
                     </div>
                     
-                    <p className="text-gray-700 text-sm line-clamp-2">{grievance.description}</p>
+                    <p className="text-body text-gray-700 line-clamp-2 mb-3">{grievance.description}</p>
                     
                     {grievance.expected_resolution_date && (
-                      <div className="mt-2 text-sm text-orange-600">
+                      <div className="flex items-center text-body-sm text-orange-600">
+                        <Clock className="w-4 h-4 mr-1" />
                         Expected resolution: {formatDate(grievance.expected_resolution_date)}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    {/* Quick Action Buttons */}
-                    {grievance.status === 'open' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuickStatusUpdate(grievance.id, 'in_progress');
-                        }}
-                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Start Progress"
-                      >
-                        <Play className="w-4 h-4" />
-                      </button>
-                    )}
-                    
-                    {/* Chat Button with Unread Alert */}
+                  <div className="flex items-center space-x-2 ml-4">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOpenChat(grievance);
                       }}
-                      className={`p-2 rounded-lg transition-colors relative ${
-                        hasUnreadMessages(grievance)
-                          ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                          : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                      }`}
-                      title="Chat & Comments"
+                      className={`btn-outline px-3 py-1.5 text-sm ${hasUnreadMessages(grievance) ? 'animate-pulse border-red-300 bg-red-50' : ''}`}
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      {hasUnreadMessages(grievance) && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                      )}
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Chat
                     </button>
                     
-                    {(grievance.status === 'open' || grievance.status === 'in_progress') && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGrievance(grievance);
-                        }}
-                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Mark Resolved (requires resolution)"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                    )}
-                    
                     <button
-                      onClick={() => setSelectedGrievance(grievance)}
-                      className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      title="View Details"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedGrievance(grievance);
+                      }}
+                      className="btn-outline px-3 py-1.5 text-sm"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
                     </button>
                   </div>
                 </div>
@@ -705,30 +613,32 @@ export default function MyGrievancesPage() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Enhanced Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-500">
+          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+            <div className="text-body-sm text-gray-500">
               Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
             </div>
             <div className="flex items-center space-x-2">
-              <button
+              <EnhancedButton
                 onClick={() => setPage(page - 1)}
                 disabled={page === 1}
-                className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                variant="outline"
+                size="sm"
               >
                 Previous
-              </button>
-              <span className="text-sm text-gray-500">
+              </EnhancedButton>
+              <span className="text-body-sm text-gray-500 px-4">
                 Page {pagination.page} of {pagination.totalPages}
               </span>
-              <button
+              <EnhancedButton
                 onClick={() => setPage(page + 1)}
                 disabled={page === pagination.totalPages}
-                className="px-3 py-1 rounded-md bg-gray-100 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                variant="outline"
+                size="sm"
               >
                 Next
-              </button>
+              </EnhancedButton>
             </div>
           </div>
         )}
@@ -758,6 +668,27 @@ export default function MyGrievancesPage() {
     </div>
   );
 }
+
+// Enhanced utility functions
+const getPriorityBadgeClass = (priority: string) => {
+  switch (priority) {
+    case 'urgent': return 'badge-error';
+    case 'high': return 'badge-warning';
+    case 'medium': return 'badge-info';
+    case 'low': return 'badge-success';
+    default: return 'badge-secondary';
+  }
+};
+
+const getStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'open': return 'badge-info';
+    case 'in_progress': return 'badge-warning';
+    case 'resolved': return 'badge-success';
+    case 'closed': return 'badge-secondary';
+    default: return 'badge-secondary';
+  }
+};
 
 // Enhanced Grievance Details Modal Component with Status Updates
 interface GrievanceDetailsModalProps {
@@ -1134,59 +1065,54 @@ function GrievanceDetailsModal({ grievance, currentAdminId, onClose, onUpdate, o
             </div>
             
             <div className="flex space-x-3">
-              <button
+              <EnhancedButton
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                variant="outline"
+                size="md"
               >
                 Cancel
-              </button>
+              </EnhancedButton>
               
               {activeTab === 'update' && (
-                <button
+                <EnhancedButton
                   onClick={handleStatusUpdate}
                   disabled={loading || (statusUpdate.status === 'resolved' && !statusUpdate.resolution.trim())}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    loading || (statusUpdate.status === 'resolved' && !statusUpdate.resolution.trim())
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
+                  variant="primary"
+                  size="md"
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <LoadingSpinner className="w-4 h-4 mr-2" />
                       <span>Updating...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-4 h-4 mr-2" />
                       <span>Update Status</span>
                     </>
                   )}
-                </button>
+                </EnhancedButton>
               )}
               
               {activeTab === 'comments' && (
-                <button
+                <EnhancedButton
                   onClick={handleAddComment}
                   disabled={loading || !comment.trim()}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    loading || !comment.trim()
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
+                  variant="primary"
+                  size="md"
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <LoadingSpinner className="w-4 h-4 mr-2" />
                       <span>Adding...</span>
                     </>
                   ) : (
                     <>
-                      <MessageCircle className="w-4 h-4" />
+                      <MessageCircle className="w-4 h-4 mr-2" />
                       <span>Add Comment</span>
                     </>
                   )}
-                </button>
+                </EnhancedButton>
               )}
             </div>
           </div>

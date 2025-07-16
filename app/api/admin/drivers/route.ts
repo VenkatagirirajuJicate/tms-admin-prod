@@ -17,7 +17,7 @@ export async function GET() {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch drivers from database
-    const { data: drivers, error } = await supabase
+    const { data: rawDrivers, error } = await supabase
       .from('drivers')
       .select('*')
       .order('created_at', { ascending: false });
@@ -30,10 +30,28 @@ export async function GET() {
       );
     }
 
+    // Transform data to match frontend expectations
+    const drivers = (rawDrivers || []).map(driver => ({
+      id: driver.id,
+      driver_name: driver.name || 'Unknown Driver', // Schema uses 'name' not 'driver_name'
+      phone_number: driver.phone || 'N/A', // Schema uses 'phone' not 'phone_number'
+      email: driver.email || 'N/A',
+      license_number: driver.license_number || 'N/A',
+      experience_years: driver.experience_years || 0,
+      rating: driver.rating || 4.0,
+      status: driver.status || 'active',
+      created_at: driver.created_at,
+      updated_at: driver.updated_at,
+      // Default relationship fields
+      routes: null,
+      vehicles: null,
+      total_trips: driver.total_trips || 0
+    }));
+
     return NextResponse.json({ 
       success: true, 
-      data: drivers || [],
-      count: drivers?.length || 0
+      data: drivers,
+      count: drivers.length
     });
 
   } catch (error) {

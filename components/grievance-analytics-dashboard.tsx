@@ -80,25 +80,42 @@ const MetricCard = ({
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+    className="card-gradient group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
   >
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
-        {change && (
-          <div className={`flex items-center mt-2 text-sm ${
-            changeType === 'increase' ? 'text-green-600' :
-            changeType === 'decrease' ? 'text-red-600' : 'text-gray-600'
+    <div className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 ${
+            color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-blue-600' :
+            color === 'green' ? 'bg-gradient-to-br from-green-400 to-green-600' :
+            color === 'red' ? 'bg-gradient-to-br from-red-400 to-red-600' :
+            color === 'orange' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+            'bg-gradient-to-br from-gray-400 to-gray-600'
           }`}>
-            {changeType === 'increase' && <TrendingUp className="w-4 h-4 mr-1" />}
-            {changeType === 'decrease' && <TrendingDown className="w-4 h-4 mr-1" />}
-            <span>{change}</span>
+            <Icon className="w-6 h-6 text-white" />
           </div>
-        )}
-      </div>
-      <div className={`p-3 rounded-full bg-${color}-50`}>
-        <Icon className={`h-8 w-8 text-${color}-600`} />
+          {change && (
+            <div className={`flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${
+              changeType === 'increase' ? 'bg-green-50 text-green-600' : 
+              changeType === 'decrease' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-600'
+            }`}>
+              {changeType === 'increase' && <TrendingUp className="w-4 h-4 mr-1" />}
+              {changeType === 'decrease' && <TrendingDown className="w-4 h-4 mr-1" />}
+              <span>{change}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-2">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+            {value}
+          </h3>
+          <p className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">
+            {title}
+          </p>
+        </div>
       </div>
     </div>
   </motion.div>

@@ -22,7 +22,8 @@ import {
   Save,
   Loader2,
   Wifi,
-  WifiOff
+  WifiOff,
+  Target
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
@@ -30,6 +31,8 @@ import AddRouteModal from '@/components/add-route-modal';
 import EditRouteModal from '@/components/edit-route-modal';
 import RouteDetailsModal from '@/components/route-details-modal';
 import LiveTrackingMap from '@/components/live-tracking-map';
+import UniversalStatCard from '@/components/universal-stat-card';
+import { createRouteStats, safeNumber, safePercentage } from '@/lib/stat-utils';
 
 const RouteCard = ({ route, onEdit, onDelete, onView, onLiveTrack, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
@@ -452,41 +455,28 @@ const RoutesPage = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <RouteIcon className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Routes</p>
-              <p className="text-xl font-bold text-gray-900">{routes.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Activity className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Active Routes</p>
-              <p className="text-xl font-bold text-gray-900">{activeRoutes}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Occupancy</p>
-              <p className="text-xl font-bold text-gray-900">{totalOccupancy}/{totalCapacity}</p>
-            </div>
-          </div>
-        </div>
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+        {createRouteStats({
+          totalRoutes: routes.length,
+          activeRoutes: activeRoutes,
+          totalOccupancy: totalOccupancy,
+          totalCapacity: totalCapacity,
+          avgUtilization: safePercentage(totalOccupancy, totalCapacity)
+        }).map((stat, index) => (
+          <UniversalStatCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            subtitle={stat.subtitle}
+            icon={index === 0 ? RouteIcon : index === 1 ? Activity : index === 2 ? Users : Target}
+            trend={stat.trend}
+            color={stat.color}
+            variant="default"
+            loading={loading}
+            delay={index}
+          />
+        ))}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">

@@ -209,30 +209,37 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
       >
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Car className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-purple-700 px-4 sm:px-6 py-4 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Car className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-2xl font-bold text-white">{title}</h2>
+                <p className="text-xs sm:text-sm text-blue-100 hidden sm:block">Fill in the vehicle details below</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">{title}</h2>
-              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Fill in the vehicle details below</p>
-            </div>
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors touch-manipulation disabled:opacity-50"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
+
+        <div className="overflow-y-auto max-h-[calc(95vh-100px)] sm:max-h-[calc(90vh-100px)]">
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6 sm:space-y-8">
           {/* Basic Information */}
@@ -628,6 +635,7 @@ const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
             </button>
           </div>
         </form>
+        </div>
       </motion.div>
     </div>
   );

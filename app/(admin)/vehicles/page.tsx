@@ -22,6 +22,8 @@ import { DatabaseService } from '@/lib/database';
 import AddVehicleModal from '@/components/add-vehicle-modal';
 import VehicleDetailsModal from '@/components/vehicle-details-modal';
 import EditVehicleModal from '@/components/edit-vehicle-modal';
+import UniversalStatCard from '@/components/universal-stat-card';
+import { createVehicleStats, safeNumber } from '@/lib/stat-utils';
 
 const VehicleCard = ({ vehicle, onEdit, onDelete, onView, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
@@ -293,52 +295,32 @@ const VehiclesPage = () => {
           )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Car className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Vehicles</p>
-              <p className="text-xl font-bold text-gray-900">{totalVehicles}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Active</p>
-              <p className="text-xl font-bold text-gray-900">{activeVehicles}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Maintenance</p>
-              <p className="text-xl font-bold text-gray-900">{maintenanceVehicles}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Due Maintenance</p>
-              <p className="text-xl font-bold text-gray-900">{maintenanceDue}</p>
-            </div>
-          </div>
-        </div>
+      {/* Enhanced Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+        {createVehicleStats({
+          totalVehicles: totalVehicles,
+          activeVehicles: activeVehicles,
+          maintenanceVehicles: maintenanceVehicles,
+          outOfService: maintenanceDue
+        }).map((stat, index) => (
+          <UniversalStatCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            subtitle={stat.subtitle}
+            icon={
+              index === 0 ? Car :
+              index === 1 ? CheckCircle :
+              index === 2 ? Wrench :
+              AlertTriangle
+            }
+            trend={stat.trend}
+            color={stat.color}
+            variant="default"
+            loading={loading}
+            delay={index}
+          />
+        ))}
       </div>
 
       {/* Filters */}

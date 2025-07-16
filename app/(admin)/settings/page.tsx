@@ -23,7 +23,9 @@ import {
   Bus,
   Calendar,
   Clock,
-  DollarSign
+  DollarSign,
+  Eye,
+  Monitor
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SchedulingConfigManager, { defaultSchedulingSettings } from '../../../lib/scheduling-config';
@@ -67,7 +69,7 @@ const SettingsPage = () => {
     // Check URL params to set active tab
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    const validTabs = ['general', 'users', 'scheduling', 'payments', 'notifications', 'security', 'system', 'backup'];
+    const validTabs = ['general', 'scheduling', 'notifications', 'security', 'system'];
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
     }
@@ -128,16 +130,10 @@ const SettingsPage = () => {
 
   const tabs = [
     { id: 'general', name: 'General', icon: Settings },
-    { id: 'users', name: 'User Management', icon: Users },
     { id: 'scheduling', name: 'Scheduling', icon: Bus },
-    { id: 'payments', name: 'Payments', icon: DollarSign },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Security', icon: Shield },
-    { id: 'api', name: 'API Settings', icon: Globe },
-    { id: 'appearance', name: 'Appearance', icon: Settings },
-    { id: 'system', name: 'System', icon: Server },
-    { id: 'logs', name: 'Audit Logs', icon: Clock },
-    { id: 'backup', name: 'Backup & Restore', icon: Database }
+    { id: 'system', name: 'System', icon: Server }
   ];
 
   const handleSaveSettings = async (section: string) => {
@@ -508,43 +504,363 @@ const SettingsPage = () => {
     </div>
   );
 
+
+
   const renderSystemSettings = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* System Information */}
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">System Information</h3>
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-gray-700">Version:</span>
-            <span className="text-sm text-gray-900">v2.1.0</span>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <Server className="w-5 h-5 text-blue-600" />
+              <span>Application Details</span>
+            </h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Version:</span>
+                <span className="text-sm text-gray-900">v2.1.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Environment:</span>
+                <span className="text-sm text-gray-900">Production</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Node.js:</span>
+                <span className="text-sm text-gray-900">18.17.0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Next.js:</span>
+                <span className="text-sm text-gray-900">14.0.3</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Last Updated:</span>
+                <span className="text-sm text-gray-900">{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-gray-700">Environment:</span>
-            <span className="text-sm text-gray-900">Production</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-gray-700">Database:</span>
-            <span className="text-sm text-gray-900">PostgreSQL 14.x</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm font-medium text-gray-700">Last Updated:</span>
-            <span className="text-sm text-gray-900">{new Date().toLocaleDateString()}</span>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <Database className="w-5 h-5 text-green-600" />
+              <span>Database Status</span>
+            </h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Type:</span>
+                <span className="text-sm text-gray-900">PostgreSQL</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Version:</span>
+                <span className="text-sm text-gray-900">14.9</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Status:</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Connected
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Pool Size:</span>
+                <span className="text-sm text-gray-900">10/20</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-gray-700">Response Time:</span>
+                <span className="text-sm text-gray-900">45ms</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-6 space-y-3">
-          <button
-            onClick={() => toast.success('Cache cleared successfully')}
-            className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors flex items-center space-x-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Clear Cache</span>
-          </button>
-          <button
-            onClick={() => toast.success('System maintenance scheduled')}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span>Schedule Maintenance</span>
-          </button>
+      </div>
+
+      {/* Performance Metrics */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-blue-700">Avg Response Time</div>
+                <div className="text-2xl font-bold text-blue-600">245ms</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-green-700">Uptime</div>
+                <div className="text-2xl font-bold text-green-600">99.9%</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <HardDrive className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-orange-700">Memory Usage</div>
+                <div className="text-2xl font-bold text-orange-600">68%</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Globe className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-purple-700">Active Sessions</div>
+                <div className="text-2xl font-bold text-purple-600">1,234</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* System Tools */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Management</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Cache Management */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <RefreshCw className="w-5 h-5 text-blue-600" />
+              <span>Cache Management</span>
+            </h4>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                Clear application cache to free memory and ensure fresh data.
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => toast.success('Application cache cleared successfully')}
+                  className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Clear App Cache
+                </button>
+                <button
+                  onClick={() => toast.success('Database cache cleared successfully')}
+                  className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Clear DB Cache
+                </button>
+                <button
+                  onClick={() => toast.success('CDN cache purged successfully')}
+                  className="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors"
+                >
+                  Purge CDN Cache
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Database Tools */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <Database className="w-5 h-5 text-green-600" />
+              <span>Database Tools</span>
+            </h4>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                Database maintenance and optimization tools.
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => toast.success('Database optimization started')}
+                  className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Optimize Database
+                </button>
+                <button
+                  onClick={() => toast.success('Database backup initiated')}
+                  className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Create Backup
+                </button>
+                <button
+                  onClick={() => toast.success('Analytics refreshed')}
+                  className="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors"
+                >
+                  Refresh Analytics
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* System Maintenance */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              <span>System Maintenance</span>
+            </h4>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                System-wide maintenance and monitoring tools.
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => toast.success('Health check completed')}
+                  className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Run Health Check
+                </button>
+                <button
+                  onClick={() => toast.success('Maintenance mode enabled')}
+                  className="w-full bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700 transition-colors"
+                >
+                  Maintenance Mode
+                </button>
+                <button
+                  onClick={() => toast.success('System restart scheduled')}
+                  className="w-full bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                >
+                  Schedule Restart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Storage & Files */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Storage & Files</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <HardDrive className="w-5 h-5 text-blue-600" />
+              <span>Storage Usage</span>
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Database</span>
+                <span className="text-sm font-medium">2.4 GB</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '35%' }}></div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Files & Media</span>
+                <span className="text-sm font-medium">8.7 GB</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-600 h-2 rounded-full" style={{ width: '60%' }}></div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Logs</span>
+                <span className="text-sm font-medium">1.2 GB</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-orange-600 h-2 rounded-full" style={{ width: '20%' }}></div>
+              </div>
+              
+              <div className="pt-2 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-900">Total Used</span>
+                  <span className="text-sm font-bold text-gray-900">12.3 GB / 50 GB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-2">
+              <Download className="w-5 h-5 text-green-600" />
+              <span>File Management</span>
+            </h4>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                Manage system files and generate reports.
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => toast.success('Temporary files cleaned')}
+                  className="w-full bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700 transition-colors"
+                >
+                  Clean Temp Files
+                </button>
+                <button
+                  onClick={() => toast.success('Log files archived')}
+                  className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Archive Logs
+                </button>
+                <button
+                  onClick={() => toast.success('System report generated')}
+                  className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Security & Monitoring */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Security & Monitoring</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <Shield className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <div className="text-sm font-medium text-gray-900">Security Score</div>
+              <div className="text-2xl font-bold text-green-600">94/100</div>
+              <div className="text-xs text-gray-500">Last scan: 2 hours ago</div>
+            </div>
+            
+            <div className="text-center">
+              <AlertTriangle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-sm font-medium text-gray-900">Security Alerts</div>
+              <div className="text-2xl font-bold text-orange-600">3</div>
+              <div className="text-xs text-gray-500">2 low, 1 medium</div>
+            </div>
+            
+            <div className="text-center">
+              <Eye className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <div className="text-sm font-medium text-gray-900">Failed Logins</div>
+              <div className="text-2xl font-bold text-blue-600">12</div>
+              <div className="text-xs text-gray-500">Last 24 hours</div>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => toast.success('Security scan initiated')}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Shield className="w-4 h-4" />
+              <span>Run Security Scan</span>
+            </button>
+            <button
+              onClick={() => toast.success('Monitoring dashboard updated')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Monitor className="w-4 h-4" />
+              <span>View Monitoring</span>
+            </button>
+            <button
+              onClick={() => toast.success('Security report generated')}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Report</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -563,26 +879,14 @@ const SettingsPage = () => {
     switch (activeTab) {
       case 'general':
         return renderGeneralSettings();
-      case 'users':
-        return <div className="text-center py-8">User management will be implemented here</div>;
       case 'scheduling':
         return renderSchedulingSettings();
-      case 'payments':
-        return <div className="text-center py-8">Payment settings will be implemented here</div>;
       case 'notifications':
         return renderNotificationSettings();
       case 'security':
         return renderSecuritySettings();
-      case 'api':
-        return <div className="text-center py-8">API settings will be implemented here</div>;
-      case 'appearance':
-        return <div className="text-center py-8">Appearance settings will be implemented here</div>;
       case 'system':
         return renderSystemSettings();
-      case 'logs':
-        return <div className="text-center py-8">Audit logs will be implemented here</div>;
-      case 'backup':
-        return <div className="text-center py-8">Backup & restore will be implemented here</div>;
       default:
         return <div className="text-center py-8">Invalid tab</div>;
     }

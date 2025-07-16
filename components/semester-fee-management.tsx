@@ -77,15 +77,47 @@ const SemesterFeeManagement = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Get current semester info for form initialization
+  const getCurrentSemesterInfo = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1; // 0-indexed
+    const year = now.getFullYear();
+    
+    if (month >= 6 && month <= 11) {
+      // First semester (June-November)
+      return {
+        academicYear: `${year}-${String(year + 1).slice(-2)}`,
+        semester: '1',
+        startDate: `${year}-06-01`,
+        endDate: `${year}-11-30`
+      };
+    } else {
+      // Second semester (December-May)
+      const academicStartYear = month >= 12 ? year : year - 1;
+      return {
+        academicYear: `${academicStartYear}-${String(academicStartYear + 1).slice(-2)}`,
+        semester: '2',
+        startDate: `${academicStartYear}-12-01`,
+        endDate: `${academicStartYear + 1}-05-31`
+      };
+    }
+  };
+
   // Form states for creating/editing fees
-  const [formData, setFormData] = useState({
-    routeId: '',
-    academicYear: '',
-    semester: '1',
-    effectiveFrom: '',
-    effectiveUntil: '',
-    stops: [{ stopName: '', fee: '' }]
+  const [formData, setFormData] = useState(() => {
+    const currentSemester = getCurrentSemesterInfo();
+    return {
+      routeId: '',
+      academicYear: currentSemester.academicYear,
+      semester: currentSemester.semester,
+      effectiveFrom: currentSemester.startDate,
+      effectiveUntil: currentSemester.endDate,
+      stops: [{ stopName: '', fee: '' }]
+    };
   });
+
+  // Route stops loading state
+  const [loadingRouteStops, setLoadingRouteStops] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -113,8 +145,13 @@ const SemesterFeeManagement = () => {
       const response = await fetch(`/api/admin/semester-fees?${params}`);
       if (!response.ok) throw new Error('Failed to fetch fees');
       
-      const data = await response.json();
-      setFees(data);
+      const result = await response.json();
+      
+      // Handle different response formats 
+      const feesData = result.success ? result.data : result;
+      const fees = Array.isArray(feesData) ? feesData : [];
+      
+      setFees(fees);
     } catch (error) {
       console.error('Error fetching fees:', error);
       throw error;
@@ -126,11 +163,72 @@ const SemesterFeeManagement = () => {
       const response = await fetch('/api/admin/routes');
       if (!response.ok) throw new Error('Failed to fetch routes');
       
-      const data = await response.json();
-      setRoutes(data.filter((route: Route) => route.status === 'active'));
+      const result = await response.json();
+      
+      // Handle different response formats
+      const routesData = result.success ? result.data : result;
+      const routes = Array.isArray(routesData) ? routesData : [];
+      
+      setRoutes(routes.filter((route: Route) => route.status === 'active'));
     } catch (error) {
       console.error('Error fetching routes:', error);
       throw error;
+    }
+  };
+
+  const fetchRouteStops = async (routeId: string) => {
+    setLoadingRouteStops(true);
+    try {
+      const response = await fetch(`/api/admin/routes/${routeId}/stops`);
+      if (!response.ok) throw new Error('Failed to fetch route stops');
+      
+      const result = await response.json();
+      
+      if (result.success && result.stops) {
+        const stopsWithFees = result.stops.map((stop: any) => ({
+          stopName: stop.stop_name,
+          fee: ''
+        }));
+        
+        setFormData(prev => ({
+          ...prev,
+          stops: stopsWithFees.length > 0 ? stopsWithFees : [{ stopName: '', fee: '' }]
+        }));
+        
+        if (stopsWithFees.length > 0) {
+          toast.success(`Loaded ${stopsWithFees.length} stops for this route`);
+        } else {
+          toast('No stops found for this route. You can add them manually.');
+        }
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error fetching route stops:', error);
+      toast.error('Failed to load route stops. You can add them manually.');
+      // Keep current stops or reset to single empty stop
+      if (formData.stops.length === 0) {
+        setFormData(prev => ({
+          ...prev,
+          stops: [{ stopName: '', fee: '' }]
+        }));
+      }
+    } finally {
+      setLoadingRouteStops(false);
+    }
+  };
+
+  const handleRouteChange = (routeId: string) => {
+    setFormData(prev => ({ ...prev, routeId }));
+    
+    if (routeId) {
+      fetchRouteStops(routeId);
+    } else {
+      // Reset stops to single empty stop when no route selected
+      setFormData(prev => ({
+        ...prev,
+        stops: [{ stopName: '', fee: '' }]
+      }));
     }
   };
 
@@ -570,7 +668,10 @@ const SemesterFeeManagement = () => {
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900">Create Semester Fees</h2>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetForm();
+                  }}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-5 h-5" />
@@ -585,9 +686,10 @@ const SemesterFeeManagement = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Route *</label>
                       <select
                         value={formData.routeId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, routeId: e.target.value }))}
+                        onChange={(e) => handleRouteChange(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
+                        disabled={loadingRouteStops}
                       >
                         <option value="">Select Route</option>
                         {routes.map(route => (
@@ -596,6 +698,12 @@ const SemesterFeeManagement = () => {
                           </option>
                         ))}
                       </select>
+                      {loadingRouteStops && (
+                        <div className="mt-2 flex items-center text-sm text-blue-600">
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Loading route stops...
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Academic Year *</label>
@@ -648,57 +756,75 @@ const SemesterFeeManagement = () => {
                   {/* Stops and Fees */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Stops and Fees *</label>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Stops and Fees *</label>
+                        {formData.routeId && !loadingRouteStops && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Stops are automatically loaded from the selected route. You can add additional stops if needed.
+                          </p>
+                        )}
+                      </div>
                       <button
                         onClick={addStop}
                         className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-1 text-sm"
+                        disabled={loadingRouteStops}
                       >
                         <Plus className="w-4 h-4" />
                         <span>Add Stop</span>
                       </button>
                     </div>
-                    <div className="space-y-3">
-                      {formData.stops.map((stop, index) => (
-                        <div key={index} className="flex space-x-3 items-center">
-                          <div className="flex-1">
-                            <input
-                              type="text"
-                              placeholder="Stop name"
-                              value={stop.stopName}
-                              onChange={(e) => updateStop(index, 'stopName', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="w-32">
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                    {loadingRouteStops ? (
+                      <div className="flex items-center justify-center py-8 text-gray-500">
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        <span>Loading route stops...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {formData.stops.map((stop, index) => (
+                          <div key={index} className="flex space-x-3 items-center">
+                            <div className="flex-1">
                               <input
-                                type="number"
-                                placeholder="Fee"
-                                value={stop.fee || ''}
-                                onChange={(e) => updateStop(index, 'fee', e.target.value)}
-                                className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                type="text"
+                                placeholder="Stop name"
+                                value={stop.stopName}
+                                onChange={(e) => updateStop(index, 'stopName', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
+                            <div className="w-32">
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                <input
+                                  type="number"
+                                  placeholder="Fee"
+                                  value={stop.fee || ''}
+                                  onChange={(e) => updateStop(index, 'fee', e.target.value)}
+                                  className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                            </div>
+                            {formData.stops.length > 1 && (
+                              <button
+                                onClick={() => removeStop(index)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
-                          {formData.stops.length > 1 && (
-                            <button
-                              onClick={() => removeStop(index)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetForm();
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel

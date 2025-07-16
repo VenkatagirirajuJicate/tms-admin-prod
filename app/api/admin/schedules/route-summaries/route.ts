@@ -16,11 +16,18 @@ export async function GET() {
 
     const routeSummaries = await Promise.all(
       routes.map(async (route: any) => {
-        // Get next upcoming trip for this route (prioritize schedules with bookings)
-        const today = new Date();
-        const todayStr = today.getFullYear() + '-' + 
-                        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                        String(today.getDate()).padStart(2, '0');
+        // Get next upcoming trip for this route with proper filtering
+        const now = new Date();
+        const todayStr = now.getFullYear() + '-' + 
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(now.getDate()).padStart(2, '0');
+        
+        // Get tomorrow's date as minimum for safer trip selection
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.getFullYear() + '-' + 
+                           String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(tomorrow.getDate()).padStart(2, '0');
         
         const { data: allUpcomingTrips } = await supabaseAdmin
           .from('schedules')
@@ -32,13 +39,32 @@ export async function GET() {
             scheduling_instructions
           `)
           .eq('route_id', route.id)
-          .gte('schedule_date', todayStr)
+          .gte('schedule_date', tomorrowStr)  // Start from tomorrow to avoid today's confusion
           .in('status', ['scheduled', 'in_progress'])
           .order('schedule_date', { ascending: true })
           .order('departure_time', { ascending: true });
 
-        // Prioritize schedules with bookings, then by date/time
-        const nextTrip = allUpcomingTrips?.find((trip: any) => trip.booked_seats > 0) || allUpcomingTrips?.[0] || null;
+        // Filter trips to find the most appropriate "next trip"
+        let nextTrip = null;
+        
+        if (allUpcomingTrips && allUpcomingTrips.length > 0) {
+          // First, try to find the earliest trip that's approved and open for booking
+          nextTrip = allUpcomingTrips.find((trip: any) => 
+            trip.admin_scheduling_enabled && 
+            trip.booking_enabled &&
+            (!trip.booking_deadline || new Date(trip.booking_deadline) > now)
+          );
+          
+          // If no open trips found, get the earliest approved trip
+          if (!nextTrip) {
+            nextTrip = allUpcomingTrips.find((trip: any) => trip.admin_scheduling_enabled);
+          }
+          
+          // If no approved trips, get the earliest trip (needs approval)
+          if (!nextTrip) {
+            nextTrip = allUpcomingTrips[0];
+          }
+        }
 
         // Get monthly statistics
         const currentMonth = new Date();

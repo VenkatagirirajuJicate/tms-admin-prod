@@ -89,6 +89,10 @@ export async function GET(request: NextRequest) {
       case 'disabled':
         query = query.eq('admin_scheduling_enabled', false).eq('booking_enabled', false);
         break;
+      case 'completed':
+        query = query.eq('status', 'completed');
+        break;
+      // Don't add any filter for 'all' - let all statuses through
     }
 
     // Apply route filter if specified
