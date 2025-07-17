@@ -20,7 +20,8 @@ import {
   Shield,
   FileText,
   Search,
-  Power
+  Power,
+  Navigation
 } from 'lucide-react';
 import { AdminUser, UserRole } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
@@ -88,6 +89,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       name: 'Vehicles', 
       href: '/vehicles', 
       icon: Car, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    { 
+      name: 'GPS Devices', 
+      href: '/gps-devices', 
+      icon: Navigation, 
       roles: ['super_admin', 'transport_admin'],
       group: 'transport'
     },

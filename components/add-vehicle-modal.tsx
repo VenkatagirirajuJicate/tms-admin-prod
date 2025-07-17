@@ -7,6 +7,7 @@ import { DatabaseService } from '@/lib/database';
 import toast from 'react-hot-toast';
 
 const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
+  const [gpsDevices, setGpsDevices] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     registrationNumber: '',
     model: '',
@@ -19,11 +20,33 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
     mileage: '',
     purchaseDate: '',
     chassisNumber: '',
-    engineNumber: ''
+    engineNumber: '',
+    gpsDeviceId: '',
+    liveTrackingEnabled: false
   });
 
   const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
+
+  // Fetch GPS devices when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchGpsDevices();
+    }
+  }, [isOpen]);
+
+  const fetchGpsDevices = async () => {
+    try {
+      const response = await fetch('/api/admin/gps/devices');
+      const result = await response.json();
+      if (result.success) {
+        const activeDevices = result.data.filter((device: any) => device.status === 'active');
+        setGpsDevices(activeDevices);
+      }
+    } catch (error) {
+      console.error('Error fetching GPS devices:', error);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -55,7 +78,9 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
         mileage: formData.mileage ? parseFloat(formData.mileage) : 0,
         purchaseDate: formData.purchaseDate || null,
         chassisNumber: formData.chassisNumber.trim() || null,
-        engineNumber: formData.engineNumber.trim() || null
+        engineNumber: formData.engineNumber.trim() || null,
+        gpsDeviceId: formData.gpsDeviceId || null,
+        liveTrackingEnabled: formData.liveTrackingEnabled || false
       };
       
       await DatabaseService.addVehicle(vehicleData);
@@ -75,7 +100,9 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
         mileage: '',
         purchaseDate: '',
         chassisNumber: '',
-        engineNumber: ''
+        engineNumber: '',
+        gpsDeviceId: '',
+        liveTrackingEnabled: false
       });
       setErrors({});
       
@@ -278,6 +305,74 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
                   placeholder="497TCIC123456"
                   disabled={loading}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* GPS Tracking */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              GPS Tracking
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">GPS Device</label>
+                <select
+                  value={formData.gpsDeviceId}
+                  onChange={(e) => setFormData({ ...formData, gpsDeviceId: e.target.value })}
+                  className="input"
+                  disabled={loading}
+                >
+                  <option value="">No GPS Device</option>
+                  {gpsDevices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.device_name} ({device.device_id})
+                    </option>
+                  ))}
+                </select>
+                {gpsDevices.length === 0 ? (
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-xs text-yellow-700 mb-2">
+                      No GPS devices available. Add GPS devices first to enable vehicle tracking.
+                    </p>
+                    <a 
+                      href="/gps-devices" 
+                      target="_blank"
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      → Manage GPS Devices
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Assign a GPS device for real-time vehicle tracking
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col">
+                <label className="flex items-center space-x-2 mb-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.liveTrackingEnabled}
+                    onChange={(e) => setFormData({ ...formData, liveTrackingEnabled: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    disabled={loading || !formData.gpsDeviceId}
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Enable Live Tracking
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500">
+                  {!formData.gpsDeviceId 
+                    ? 'Select a GPS device to enable live tracking'
+                    : 'Allow real-time location tracking for this vehicle'
+                  }
+                </p>
               </div>
             </div>
           </div>

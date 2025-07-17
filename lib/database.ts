@@ -1629,6 +1629,8 @@ export class DatabaseService {
           purchase_date: vehicleData.purchaseDate || null,
           chassis_number: vehicleData.chassisNumber || null,
           engine_number: vehicleData.engineNumber || null,
+          gps_device_id: vehicleData.gpsDeviceId || null,
+          live_tracking_enabled: vehicleData.liveTrackingEnabled || false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])

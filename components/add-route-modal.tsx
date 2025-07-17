@@ -1019,9 +1019,9 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
               </div>
 
               <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-yellow-900 mb-2">Driver & Vehicle Assignment</h3>
+                <h3 className="text-lg font-semibold text-yellow-900 mb-2">Route Resources Assignment</h3>
                 <p className="text-yellow-700 text-sm">
-                  Assigning a driver and vehicle is optional during route creation. You can assign them later from the route management page.
+                  Assigning driver, vehicle, and GPS device is optional during route creation. You can assign them later from the route management page.
                 </p>
               </div>
 
@@ -1062,6 +1062,16 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
                   <p className="text-xs text-gray-500 mt-1">
                     {vehicles.length} active vehicles available
                   </p>
+                  {formData.vehicle_id && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-700 font-medium">
+                        📍 GPS Tracking Note
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        GPS tracking will be available if the selected vehicle has an assigned GPS device.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
