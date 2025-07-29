@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         const students = data.data || data.students || [];
         
-        // Find student by email or mobile
+        // Find student by email or mobile with new schema
         foundStudent = students.find((extStudent: any) => {
           const emailMatch = extStudent.student_email?.toLowerCase() === student.email?.toLowerCase() ||
                              extStudent.college_email?.toLowerCase() === student.email?.toLowerCase();
@@ -98,7 +98,10 @@ export async function POST(request: NextRequest) {
         });
 
         if (foundStudent) {
-          console.log('✅ Found student in external API for rejection record:', foundStudent.student_name);
+          const fullStudentName = foundStudent.first_name && foundStudent.last_name 
+          ? `${foundStudent.first_name} ${foundStudent.last_name}`.trim()
+          : foundStudent.first_name || 'Unknown Student';
+        console.log('✅ Found student in external API for rejection record:', fullStudentName);
           
           // Update student record with basic comprehensive data (for future reference)
           const basicStudentData = {
@@ -106,7 +109,7 @@ export async function POST(request: NextRequest) {
             roll_number: foundStudent.roll_number || foundStudent.student_id,
             email: foundStudent.student_email || foundStudent.college_email || student.email,
             mobile: foundStudent.student_mobile || foundStudent.father_mobile || foundStudent.mother_mobile || student.mobile,
-            external_student_id: foundStudent.student_id || foundStudent.id,
+            external_student_id: foundStudent.id,
             external_roll_number: foundStudent.roll_number,
             external_data: foundStudent,
             auth_source: 'external_api',

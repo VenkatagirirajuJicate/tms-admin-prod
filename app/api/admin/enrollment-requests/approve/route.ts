@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     const students = data.data || data.students || [];
     
-    // Find student by email or mobile
+    // Find student by email or mobile with new schema
     const foundStudent = students.find((extStudent: any) => {
       const emailMatch = extStudent.student_email?.toLowerCase() === student.email?.toLowerCase() ||
                          extStudent.college_email?.toLowerCase() === student.email?.toLowerCase();
@@ -110,7 +110,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Found student in external API:', foundStudent.student_name);
+    const fullStudentName = foundStudent.first_name && foundStudent.last_name 
+      ? `${foundStudent.first_name} ${foundStudent.last_name}`.trim()
+      : foundStudent.first_name || 'Unknown Student';
+    console.log('✅ Found student in external API:', fullStudentName);
 
     // Verify route and stop still exist and are valid
     const { data: route, error: routeError } = await supabaseAdmin
@@ -168,12 +171,12 @@ export async function POST(request: NextRequest) {
       .rpc('update_comprehensive_student_data', {
         p_student_id: enrollmentRequest.student_id,
         p_external_data: foundStudent,
-        p_external_student_id: foundStudent.student_id || foundStudent.id,
-        p_external_roll_number: foundStudent.roll_number,
-        p_department_name: foundStudent.department_name,
-        p_institution_name: foundStudent.institution_name,
-        p_program_name: foundStudent.program_name,
-        p_degree_name: foundStudent.degree_name,
+        p_external_student_id: foundStudent.id,
+                  p_external_roll_number: foundStudent.roll_number,
+          p_department_name: foundStudent.department?.department_name || 'Unknown Department',
+          p_institution_name: foundStudent.institution?.name || 'Unknown Institution',
+          p_program_name: foundStudent.program?.program_name || '',
+          p_degree_name: foundStudent.degree?.degree_name || '',
         p_father_name: foundStudent.father_name,
         p_mother_name: foundStudent.mother_name,
         p_parent_mobile: foundStudent.father_mobile || foundStudent.mother_mobile,

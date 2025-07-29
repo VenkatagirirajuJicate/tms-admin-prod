@@ -146,11 +146,35 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
       setLoading(true);
       const insertAfter = insertAfterIndex !== null ? stops[insertAfterIndex].sequence_order : undefined;
       
-      // TODO: Implement addStopToRoute API endpoint
       console.log('Adding stop to route:', route.id, newStop, insertAfter);
-      toast.error('Adding stops to routes is temporarily disabled. Please use the main routes management.');
       
-      // Refresh stops
+      // Call the API to add the stop
+      const response = await fetch(`/api/admin/routes/${route.id}/stops`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          stopData: {
+            stop_name: newStop.stop_name.trim(),
+            stop_time: newStop.stop_time,
+            is_major_stop: newStop.is_major_stop
+          },
+          insertAfterSequence: insertAfter
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add stop');
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add stop');
+      }
+      
+      // Refresh stops to show the new one
       await fetchRouteStops();
       
       // Reset form
@@ -165,6 +189,47 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
     } catch (error: any) {
       console.error('Error adding stop:', error);
       toast.error(error.message || 'Failed to add stop');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteStopFromRoute = async (stopId: string, stopName: string) => {
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the stop "${stopName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('Deleting stop from route:', route.id, stopId);
+      
+      // Call the API to delete the stop
+      const response = await fetch(`/api/admin/routes/${route.id}/stops?stopId=${stopId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete stop');
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete stop');
+      }
+      
+      // Refresh stops to show the updated list
+      await fetchRouteStops();
+      
+      toast.success('Stop deleted successfully!');
+    } catch (error: any) {
+      console.error('Error deleting stop:', error);
+      toast.error(error.message || 'Failed to delete stop');
     } finally {
       setLoading(false);
     }
@@ -200,12 +265,26 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
         vehicle_id: formData.vehicle_id || null
       };
 
-      // TODO: Implement updateRoute API endpoint
-      console.log('Updating route:', route.id, routeData);
-      toast.error('Updating routes is temporarily disabled. Please use the main routes management.');
-      
-      // For now, just close the modal
-      handleClose();
+      // Call the route update API
+      const response = await fetch('/api/admin/routes', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          routeId: route.id,
+          routeData: routeData
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update route');
+      }
+
+      toast.success('Route updated successfully!');
+      onSuccess();
       handleClose();
     } catch (error: any) {
       console.error('Error updating route:', error);
@@ -557,11 +636,10 @@ export default function EditRouteModal({ isOpen, onClose, onSuccess, route }: Ed
                           <div className="flex items-center justify-end">
                             <button
                               type="button"
-                              onClick={() => {
-                                // Remove stop functionality would go here
-                                toast('Remove stop functionality - Coming soon');
-                              }}
-                              className="p-1 text-red-400 hover:text-red-600"
+                              onClick={() => stop.id && deleteStopFromRoute(stop.id, stop.stop_name)}
+                              disabled={loading || !stop.id}
+                              className="p-1 text-red-400 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Delete stop"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Plus, Loader2, User, Phone, FileText } from 'lucide-react';
-import { DatabaseService } from '@/lib/database';
+
 import toast from 'react-hot-toast';
 
 interface AddDriverModalProps {
@@ -169,7 +169,23 @@ const AddDriverModal = ({ isOpen, onClose, onSuccess }: AddDriverModalProps) => 
         totalTrips: parseInt(formData.totalTrips)
       };
       
-      await DatabaseService.addDriver(driverData);
+      console.log('Form Data:', formData);
+      console.log('Driver Data to submit:', driverData);
+      
+      // Use API endpoint instead of DatabaseService directly
+      const response = await fetch('/api/admin/drivers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(driverData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add driver');
+      }
       
       toast.success('Driver added successfully!');
       

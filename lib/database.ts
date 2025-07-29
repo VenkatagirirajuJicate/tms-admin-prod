@@ -18,20 +18,20 @@ let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabaseClient() {
   if (!_supabase) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       const missingVars = [];
       if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
-      if (!supabaseServiceKey) missingVars.push('SUPABASE_SERVICE_ROLE_KEY');
+      if (!supabaseAnonKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
       
       throw new Error(`Missing Supabase environment variables: ${missingVars.join(', ')}. Please add them to your deployment environment variables.`);
     }
 
-    _supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    _supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        autoRefreshToken: false,
-        persistSession: false
+        autoRefreshToken: true,
+        persistSession: true
       }
     });
   }
@@ -1534,26 +1534,46 @@ export class DatabaseService {
     try {
       console.log('Adding new driver to database:', driverData);
       
+      // Helper function to convert empty strings to null for database
+      const formatForDB = (value: any) => {
+        if (value === '' || value === undefined) return null;
+        return value;
+      };
+
+      // Helper function to format date properly
+      const formatDate = (dateValue: any) => {
+        if (!dateValue || dateValue === '') return null;
+        // If it's already a valid date string, return as is
+        if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+          return dateValue;
+        }
+        return null;
+      };
+
+      const insertData = {
+        name: driverData.name,
+        license_number: driverData.licenseNumber,
+        aadhar_number: driverData.aadharNumber,
+        phone: driverData.phone,
+        email: formatForDB(driverData.email),
+        experience_years: driverData.experienceYears || 0,
+        rating: driverData.rating || 4.0,
+        total_trips: driverData.totalTrips || 0,
+        status: driverData.status || 'active',
+        address: formatForDB(driverData.address),
+        emergency_contact_name: formatForDB(driverData.emergencyContactName),
+        emergency_contact_phone: formatForDB(driverData.emergencyContactPhone),
+        license_expiry: formatDate(driverData.licenseExpiry),
+        medical_certificate_expiry: formatDate(driverData.medicalCertificateExpiry),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Formatted data for database insert:', insertData);
+      
       const { data, error } = await supabase
         .from('drivers')
-        .insert([{
-          name: driverData.name,
-          license_number: driverData.licenseNumber,
-          aadhar_number: driverData.aadharNumber,
-          phone: driverData.phone,
-          email: driverData.email || null,
-          experience_years: driverData.experienceYears || 0,
-          rating: driverData.rating || 4.0,
-          total_trips: driverData.totalTrips || 0,
-          status: driverData.status || 'active',
-          address: driverData.address || null,
-          emergency_contact_name: driverData.emergencyContactName || null,
-          emergency_contact_phone: driverData.emergencyContactPhone || null,
-          license_expiry: driverData.licenseExpiry || null,
-          medical_certificate_expiry: driverData.medicalCertificateExpiry || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([insertData])
         .select()
 
       if (error) {
@@ -1574,25 +1594,45 @@ export class DatabaseService {
     try {
       console.log('Updating driver:', driverId, driverData);
       
+      // Helper function to convert empty strings to null for database
+      const formatForDB = (value: any) => {
+        if (value === '' || value === undefined) return null;
+        return value;
+      };
+
+      // Helper function to format date properly
+      const formatDate = (dateValue: any) => {
+        if (!dateValue || dateValue === '') return null;
+        // If it's already a valid date string, return as is
+        if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+          return dateValue;
+        }
+        return null;
+      };
+
+      const updateData = {
+        name: driverData.name,
+        license_number: driverData.licenseNumber,
+        aadhar_number: driverData.aadharNumber,
+        phone: driverData.phone,
+        email: formatForDB(driverData.email),
+        experience_years: driverData.experienceYears || 0,
+        rating: driverData.rating || 4.0,
+        total_trips: driverData.totalTrips || 0,
+        status: driverData.status || 'active',
+        address: formatForDB(driverData.address),
+        emergency_contact_name: formatForDB(driverData.emergencyContactName),
+        emergency_contact_phone: formatForDB(driverData.emergencyContactPhone),
+        license_expiry: formatDate(driverData.licenseExpiry),
+        medical_certificate_expiry: formatDate(driverData.medicalCertificateExpiry),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Formatted data for database update:', updateData);
+      
       const { data, error } = await supabase
         .from('drivers')
-        .update({
-          name: driverData.name,
-          license_number: driverData.licenseNumber,
-          aadhar_number: driverData.aadharNumber,
-          phone: driverData.phone,
-          email: driverData.email || null,
-          experience_years: driverData.experienceYears || 0,
-          rating: driverData.rating || 4.0,
-          total_trips: driverData.totalTrips || 0,
-          status: driverData.status || 'active',
-          address: driverData.address || null,
-          emergency_contact_name: driverData.emergencyContactName || null,
-          emergency_contact_phone: driverData.emergencyContactPhone || null,
-          license_expiry: driverData.licenseExpiry || null,
-          medical_certificate_expiry: driverData.medicalCertificateExpiry || null,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', driverId)
         .select()
 

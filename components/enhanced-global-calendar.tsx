@@ -140,7 +140,7 @@ const ScheduleDetailsModal: React.FC<ScheduleDetailsModalProps> = ({
         if (totalBookingsCancelled > 0) {
           message += `. ${totalBookingsCancelled} booking${totalBookingsCancelled !== 1 ? 's were' : ' was'} cancelled.`;
         }
-        toast.warning(message);
+        toast.error(message);
       } else if (errorCount > 0) {
         toast.error(`Failed to ${enable ? 'enable' : 'disable'} ${errorCount} schedule${errorCount !== 1 ? 's' : ''}`);
       }
@@ -405,6 +405,8 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -563,9 +565,48 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
       return;
     }
     
+    if (isMultiSelectMode) {
+      // Multi-select mode: toggle date selection
+      const dateString = day.date.toDateString();
+      const isAlreadySelected = selectedDates.some(d => d.toDateString() === dateString);
+      
+      if (isAlreadySelected) {
+        setSelectedDates(prev => prev.filter(d => d.toDateString() !== dateString));
+      } else {
+        setSelectedDates(prev => [...prev, day.date]);
+      }
+    } else {
+      // Single-select mode: show schedule modal for the date
     setSelectedDate(day.date);
     setSelectedSchedules(day.schedules);
     setShowScheduleModal(true);
+    }
+  };
+
+  // Toggle multi-select mode
+  const toggleMultiSelectMode = () => {
+    setIsMultiSelectMode(prev => {
+      const newMode = !prev;
+      if (!newMode) {
+        // Exiting multi-select mode, clear selections
+        setSelectedDates([]);
+      }
+      return newMode;
+    });
+  };
+
+  // Clear all selected dates
+  const clearSelectedDates = () => {
+    setSelectedDates([]);
+  };
+
+  // Create schedules for multiple dates
+  const createMultiDaySchedules = () => {
+    if (selectedDates.length === 0) {
+      toast.error('Please select at least one date');
+      return;
+    }
+    setShowCreateModal(true);
   };
 
   // Handle create schedule
@@ -634,6 +675,48 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
                 </div>
                 <div className="flex items-center space-x-3">
                   <button
+                    onClick={toggleMultiSelectMode}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isMultiSelectMode 
+                        ? 'text-white bg-purple-600 hover:bg-purple-700' 
+                        : 'text-purple-700 bg-purple-50 hover:bg-purple-100'
+                    }`}
+                  >
+                    {isMultiSelectMode ? (
+                      <>
+                        <CheckSquare className="w-4 h-4 inline mr-2" />
+                        Multi-Select ON
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-4 h-4 inline mr-2" />
+                        Multi-Select
+                      </>
+                    )}
+                  </button>
+                  
+                  {isMultiSelectMode && selectedDates.length > 0 && (
+                    <>
+                      <span className="text-sm text-gray-600">
+                        {selectedDates.length} day{selectedDates.length !== 1 ? 's' : ''} selected
+                      </span>
+                      <button
+                        onClick={createMultiDaySchedules}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                      >
+                        <Plus className="w-4 h-4 inline mr-2" />
+                        Create Schedules
+                      </button>
+                      <button
+                        onClick={clearSelectedDates}
+                        className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 rounded-md transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
+                  
+                  <button
                     onClick={goToToday}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                   >
@@ -695,30 +778,47 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
                   const isRestrictedDate = !dateValidation.canEnable;
                   const hasExistingSchedules = day.totalSchedules > 0;
                   const canInteract = day.isCurrentMonth && (hasExistingSchedules || !isRestrictedDate);
+                  const isMultiSelected = isMultiSelectMode && selectedDates.some(d => d.toDateString() === day.date.toDateString());
                   
                   return (
                     <button
                       key={index}
                       onClick={() => handleDateClick(day)}
                       className={`
-                        p-3 min-h-[80px] text-left border rounded-lg transition-all duration-200
+                        p-3 min-h-[80px] text-left border rounded-lg transition-all duration-200 relative
                         ${!day.isCurrentMonth ? 'bg-gray-50 opacity-50 border-gray-200' : 
                           isRestrictedDate && !hasExistingSchedules ? 'bg-red-50 border-red-200 cursor-not-allowed' :
                           hasExistingSchedules ? 'bg-white hover:bg-gray-50 border-gray-200 cursor-pointer' :
                           'bg-white hover:bg-blue-50 border-gray-200 cursor-pointer'}
-                        ${day.isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                        ${day.isSelected && !isMultiSelectMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
+                        ${isMultiSelected ? 'ring-2 ring-purple-500 bg-purple-50 border-purple-300' : ''}
                         ${day.isToday ? 'border-blue-300' : ''}
                       `}
                       disabled={!canInteract}
                       title={isRestrictedDate && !hasExistingSchedules ? getSchedulingRestrictionMessage(day.date) || '' : ''}
                     >
                       <div className="flex flex-col space-y-1">
+                        <div className="flex items-center justify-between">
                         <span className={`text-sm font-medium ${
                           day.isToday ? 'text-blue-600' : 
                           day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
                         }`}>
                           {day.date.getDate()}
                         </span>
+                          
+                          {/* Multi-select checkbox indicator */}
+                          {isMultiSelectMode && canInteract && (
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                              isMultiSelected 
+                                ? 'bg-purple-600 border-purple-600' 
+                                : 'border-gray-300 hover:border-purple-400'
+                            }`}>
+                              {isMultiSelected && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          )}
+                        </div>
                         
                         {/* Date restriction indicator */}
                         {isRestrictedDate && !hasExistingSchedules && day.isCurrentMonth && (
@@ -819,6 +919,7 @@ export default function EnhancedGlobalCalendar({ isOpen, onClose }: EnhancedGlob
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         selectedDate={selectedDate}
+        selectedDates={isMultiSelectMode ? selectedDates : undefined}
         onScheduleCreated={handleScheduleCreated}
       />
     </>

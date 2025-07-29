@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
@@ -88,7 +88,7 @@ async function getRouteStops(routeId: string) {
       .from('route_stops')
       .select('*')
       .eq('route_id', routeId)
-      .order('stop_order', { ascending: true });
+              .order('sequence_order', { ascending: true });
 
     if (error) {
       console.error('Database error:', error);
@@ -168,6 +168,80 @@ async function addRoute(routeData: any, stops: any[]) {
     console.error('Error adding route:', error);
     return NextResponse.json(
       { error: 'Failed to add route' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const { routeId, routeData } = await request.json();
+
+    if (!routeId) {
+      return NextResponse.json(
+        { error: 'Route ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Create Supabase admin client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Update route
+    const { data: updatedRoute, error } = await supabase
+      .from('routes')
+      .update({
+        route_number: routeData.route_number,
+        route_name: routeData.route_name,
+        start_location: routeData.start_location,
+        end_location: routeData.end_location,
+        start_latitude: routeData.start_latitude,
+        start_longitude: routeData.start_longitude,
+        end_latitude: routeData.end_latitude,
+        end_longitude: routeData.end_longitude,
+        departure_time: routeData.departure_time,
+        arrival_time: routeData.arrival_time,
+        distance: routeData.distance,
+        duration: routeData.duration,
+        total_capacity: routeData.total_capacity,
+        fare: routeData.fare,
+        status: routeData.status,
+        driver_id: routeData.driver_id,
+        vehicle_id: routeData.vehicle_id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', routeId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error updating route:', error);
+      return NextResponse.json(
+        { error: 'Failed to update route' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedRoute,
+      message: 'Route updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error updating route:', error);
+    return NextResponse.json(
+      { error: 'Failed to update route' },
       { status: 500 }
     );
   }

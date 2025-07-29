@@ -25,9 +25,16 @@ import {
   UserCheck,
   Phone,
   Mail,
-  Loader2
+  Loader2,
+  Navigation,
+  Wifi,
+  WifiOff,
+  Satellite,
+  Eye
 } from 'lucide-react';
 import { DatabaseService } from '@/lib/database';
+import toast from 'react-hot-toast';
+import LiveGPSTrackingModal from '@/components/live-gps-tracking-modal';
 
 interface VehicleDetailsModalProps {
   isOpen: boolean;
@@ -43,6 +50,7 @@ const VehicleDetailsModal: React.FC<VehicleDetailsModalProps> = ({
   const [detailedVehicle, setDetailedVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLiveTrackingOpen, setIsLiveTrackingOpen] = useState(false);
 
   // Fetch detailed vehicle information when modal opens
   useEffect(() => {
@@ -484,6 +492,114 @@ const VehicleDetailsModal: React.FC<VehicleDetailsModalProps> = ({
 
                   {/* Assignments & Operational Info */}
                   <div className="space-y-6">
+
+                    {/* GPS Tracking Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <Navigation className="w-5 h-5 mr-2 text-blue-600" />
+                        GPS Tracking
+                      </h3>
+                      <div className="space-y-3">
+                        {/* GPS Device Status */}
+                        {displayVehicle.gps_device_id ? (
+                          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <Satellite className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-blue-900">GPS Device Assigned</p>
+                                  <p className="text-sm text-blue-700">Device ID: {displayVehicle.gps_device_id}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {displayVehicle.live_tracking_enabled ? (
+                                  <Wifi className="w-5 h-5 text-green-600" />
+                                ) : (
+                                  <WifiOff className="w-5 h-5 text-gray-400" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Live Tracking Status */}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div className="flex items-center justify-between">
+                                <span className="text-blue-700">Live Tracking:</span>
+                                <span className={`font-medium ${
+                                  displayVehicle.live_tracking_enabled ? 'text-green-700' : 'text-gray-600'
+                                }`}>
+                                  {displayVehicle.live_tracking_enabled ? 'Enabled' : 'Disabled'}
+                                </span>
+                              </div>
+                              {displayVehicle.last_gps_update && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-blue-700">Last Update:</span>
+                                  <span className="font-medium text-blue-900">
+                                    {new Date(displayVehicle.last_gps_update).toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Current Location */}
+                            {displayVehicle.current_latitude && displayVehicle.current_longitude && (
+                              <div className="mt-3 pt-3 border-t border-blue-200">
+                                <p className="text-sm font-medium text-blue-900 mb-2">Current Location:</p>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <span className="text-blue-700">Latitude:</span>
+                                    <span className="font-mono ml-2">{Number(displayVehicle.current_latitude).toFixed(6)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-blue-700">Longitude:</span>
+                                    <span className="font-mono ml-2">{Number(displayVehicle.current_longitude).toFixed(6)}</span>
+                                  </div>
+                                </div>
+                                {displayVehicle.gps_speed && (
+                                  <div className="mt-2 text-sm">
+                                    <span className="text-blue-700">Speed:</span>
+                                    <span className="font-medium ml-2">{displayVehicle.gps_speed} km/h</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Track Vehicle Button */}
+                            {displayVehicle.live_tracking_enabled && (
+                              <div className="mt-3 pt-3 border-t border-blue-200">
+                                <button
+                                  onClick={() => {
+                                    // Find route for this vehicle and open tracking
+                                    if (displayVehicle.routes?.id) {
+                                      setIsLiveTrackingOpen(true);
+                                    } else {
+                                      toast.error('Vehicle must be assigned to a route for live tracking');
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  <span>Track Vehicle Live</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                <Navigation className="w-4 h-4 text-gray-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-600">No GPS Device Assigned</p>
+                                <p className="text-sm text-gray-500">Assign a GPS device to enable live tracking</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     
                     {/* Route Assignment */}
                     <div>
@@ -625,6 +741,16 @@ const VehicleDetailsModal: React.FC<VehicleDetailsModalProps> = ({
       </motion.div>
     </div>
         </div>
+      )}
+
+      {/* Live GPS Tracking Modal */}
+      {isLiveTrackingOpen && displayVehicle?.routes && (
+        <LiveGPSTrackingModal
+          isOpen={isLiveTrackingOpen}
+          onClose={() => setIsLiveTrackingOpen(false)}
+          route={displayVehicle.routes}
+          title={`Live Tracking - ${displayVehicle.registration_number}`}
+        />
       )}
     </AnimatePresence>
   );

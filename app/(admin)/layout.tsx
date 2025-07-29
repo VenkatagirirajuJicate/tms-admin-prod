@@ -205,7 +205,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="w-12 h-12 animate-pulse bg-green-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
             <Bus className="h-6 w-6 text-white" />
           </div>
-          <p className="text-gray-600">Loading TMS Admin...</p>
+          <p className="text-gray-600">Loading MYJKKN TMS...</p>
         </div>
       </div>
     );
@@ -232,7 +232,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   <Bus className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">TMS Admin</h1>
+                  <h1 className="text-lg font-bold text-gray-900">MYJKKN TMS</h1>
                   <p className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</p>
                 </div>
               </div>
@@ -319,7 +319,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div className="top-bar-title">TMS Admin</div>
+            <div className="top-bar-title">MYJKKN TMS</div>
             <div className="top-bar-actions">
               <div className="user-avatar">
                 {getInitials(user.name || 'Admin')}

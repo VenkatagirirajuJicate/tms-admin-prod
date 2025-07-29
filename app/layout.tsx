@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TMS Admin Portal",
+  title: "MYJKKN TMS - Admin Portal",
   description: "Transportation Management System - Admin Portal",
   icons: {
     icon: "/favicon.ico",

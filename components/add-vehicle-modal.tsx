@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, Loader2 } from 'lucide-react';
-import { DatabaseService } from '@/lib/database';
 import toast from 'react-hot-toast';
 
 const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
@@ -83,7 +82,20 @@ const AddVehicleModal = ({ isOpen, onClose, onSuccess }: any) => {
         liveTrackingEnabled: formData.liveTrackingEnabled || false
       };
       
-      await DatabaseService.addVehicle(vehicleData);
+      // Call API instead of DatabaseService
+      const response = await fetch('/api/admin/vehicles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vehicleData),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add vehicle');
+      }
       
       toast.success('Vehicle added successfully!');
       

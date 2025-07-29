@@ -15,7 +15,9 @@ import {
   CheckCircle,
   Wrench,
   Activity,
-  Loader2
+  Loader2,
+  Navigation,
+  MapPin
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
@@ -24,8 +26,9 @@ import VehicleDetailsModal from '@/components/vehicle-details-modal';
 import EditVehicleModal from '@/components/edit-vehicle-modal';
 import UniversalStatCard from '@/components/universal-stat-card';
 import { createVehicleStats, safeNumber } from '@/lib/stat-utils';
+import LiveGPSTrackingModal from '@/components/live-gps-tracking-modal';
 
-const VehicleCard = ({ vehicle, onEdit, onDelete, onView, userRole }: any) => {
+const VehicleCard = ({ vehicle, onEdit, onDelete, onView, onTrack, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
   const canDelete = userRole === 'super_admin';
   const canView = true;
@@ -148,10 +151,20 @@ const VehicleCard = ({ vehicle, onEdit, onDelete, onView, userRole }: any) => {
       </div>
 
       <div className="flex space-x-2">
+        {/* GPS Tracking Button */}
+        {vehicle.gps_device_id && vehicle.live_tracking_enabled && (
+          <button
+            onClick={() => onTrack(vehicle)}
+            className="flex-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center space-x-1"
+          >
+            <Navigation className="w-4 h-4" />
+            <span>Track Live</span>
+          </button>
+        )}
         {canView && (
         <button
           onClick={() => onView(vehicle)}
-          className="flex-1 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
+          className={`${vehicle.gps_device_id && vehicle.live_tracking_enabled ? 'flex-1' : 'flex-1'} bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1`}
         >
           <Eye className="w-4 h-4" />
           <span>View Details</span>
@@ -190,6 +203,8 @@ const VehiclesPage = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
   const [viewingVehicle, setViewingVehicle] = useState<any>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [trackingVehicle, setTrackingVehicle] = useState<any>(null);
   
   useEffect(() => {
     const userData = localStorage.getItem('adminUser');
@@ -246,6 +261,30 @@ const VehiclesPage = () => {
   const handleViewVehicle = (vehicle: any) => {
     setViewingVehicle(vehicle);
     setIsDetailsModalOpen(true);
+  };
+
+  const handleTrackVehicle = async (vehicle: any) => {
+    try {
+      // Find the route assigned to this vehicle
+      const response = await fetch('/api/admin/routes');
+      const result = await response.json();
+      
+      if (result.success) {
+        const routes = result.data || [];
+        const assignedRoute = routes.find((route: any) => route.vehicle_id === vehicle.id);
+        
+        if (assignedRoute) {
+          setTrackingVehicle({ ...vehicle, routes: assignedRoute });
+          setIsTrackingModalOpen(true);
+        } else {
+          toast.error('Vehicle must be assigned to a route for live tracking');
+        }
+      } else {
+        toast.error('Failed to fetch route information');
+      }
+    } catch (error) {
+      toast.error('Failed to start tracking');
+    }
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
@@ -368,6 +407,7 @@ const VehiclesPage = () => {
             onEdit={handleEditVehicle}
             onDelete={handleDeleteVehicle}
             onView={handleViewVehicle}
+            onTrack={handleTrackVehicle}
             userRole={user?.role}
           />
         ))}
@@ -427,6 +467,19 @@ const VehiclesPage = () => {
         }}
         vehicle={viewingVehicle}
       />
+
+      {/* Live GPS Tracking Modal */}
+      {isTrackingModalOpen && trackingVehicle?.routes && (
+        <LiveGPSTrackingModal
+          isOpen={isTrackingModalOpen}
+          onClose={() => {
+            setIsTrackingModalOpen(false);
+            setTrackingVehicle(null);
+          }}
+          route={trackingVehicle.routes}
+          title={`Live Tracking - ${trackingVehicle.registration_number}`}
+        />
+      )}
     </div>
   );
 };

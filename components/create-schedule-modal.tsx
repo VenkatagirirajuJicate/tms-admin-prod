@@ -49,6 +49,7 @@ interface CreateScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date | null;
+  selectedDates?: Date[];
   onScheduleCreated: () => void;
 }
 
@@ -56,6 +57,7 @@ export default function CreateScheduleModal({
   isOpen, 
   onClose, 
   selectedDate,
+  selectedDates,
   onScheduleCreated 
 }: CreateScheduleModalProps) {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -66,12 +68,22 @@ export default function CreateScheduleModal({
   const [selectedRoutes, setSelectedRoutes] = useState<string[]>([]);
   const [scheduleType, setScheduleType] = useState<'single' | 'multiple'>('single');
   const [customTimes, setCustomTimes] = useState<{ [key: string]: { departureTime: string; arrivalTime: string } }>({});
+  const [workingDates, setWorkingDates] = useState<Date[]>([]);
+  const [isMultiDayMode, setIsMultiDayMode] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadData();
+      // Initialize working dates
+      if (selectedDates && selectedDates.length > 0) {
+        setWorkingDates(selectedDates);
+        setIsMultiDayMode(true);
+      } else if (selectedDate) {
+        setWorkingDates([selectedDate]);
+        setIsMultiDayMode(false);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, selectedDate, selectedDates]);
 
   const loadData = async () => {
     setLoading(true);
@@ -150,42 +162,89 @@ export default function CreateScheduleModal({
     }));
   };
 
+  const addDateToSelection = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    // Find a date that's not already selected
+    let newDate = new Date(tomorrow);
+    while (workingDates.some(date => date.toDateString() === newDate.toDateString())) {
+      newDate.setDate(newDate.getDate() + 1);
+    }
+    
+    setWorkingDates(prev => [...prev, newDate]);
+    setIsMultiDayMode(true);
+  };
+
+  const removeDateFromSelection = (dateToRemove: Date) => {
+    const newDates = workingDates.filter(date => date.toDateString() !== dateToRemove.toDateString());
+    setWorkingDates(newDates);
+    if (newDates.length <= 1) {
+      setIsMultiDayMode(newDates.length === 1);
+    }
+  };
+
+  const updateSelectedDate = (index: number, newDate: Date) => {
+    const newDates = [...workingDates];
+    newDates[index] = newDate;
+    setWorkingDates(newDates);
+  };
+
   const createSchedules = async () => {
-    if (!selectedDate || selectedRoutes.length === 0) {
-      toast.error('Please select at least one route');
+    if (workingDates.length === 0 || selectedRoutes.length === 0) {
+      toast.error('Please select at least one route and one date');
       return;
     }
 
-    // Validate date for admin scheduling
-    const dateValidation = canAdminEnableScheduleForDate(selectedDate);
+    // Validate all dates for admin scheduling
+    const invalidDates = [];
+    for (const date of workingDates) {
+      const dateValidation = canAdminEnableScheduleForDate(date);
     if (!dateValidation.canEnable) {
-      toast.error(dateValidation.reason || 'Cannot create schedules for this date');
+        invalidDates.push({
+          date: date.toLocaleDateString(),
+          reason: dateValidation.reason
+        });
+      }
+    }
+
+    if (invalidDates.length > 0) {
+      const errorMessage = invalidDates.length === 1 
+        ? `Cannot create schedules for ${invalidDates[0].date}: ${invalidDates[0].reason}`
+        : `Cannot create schedules for ${invalidDates.length} dates. Check the dates and try again.`;
+      toast.error(errorMessage);
       return;
     }
 
     setCreating(true);
     try {
-      const scheduleData = selectedRoutes.map(routeId => {
+      // Create schedule data for all dates and routes
+      const allScheduleData = [];
+      
+      for (const date of workingDates) {
+        for (const routeId of selectedRoutes) {
         const route = routes.find(r => r.id === routeId);
-        if (!route) return null;
+          if (!route) continue;
 
         const customTime = customTimes[routeId];
-        return {
+          allScheduleData.push({
           routeId,
-          scheduleDate: formatDateForDatabase(selectedDate),
+            scheduleDate: formatDateForDatabase(date),
           departureTime: customTime?.departureTime || route.departure_time,
           arrivalTime: customTime?.arrivalTime || route.arrival_time,
           availableSeats: route.total_capacity,
           driverId: route.driver_id,
           vehicleId: route.vehicle_id,
           status: 'scheduled'
-        };
-      }).filter(Boolean);
+          });
+        }
+      }
 
       const response = await fetch('/api/admin/schedules/create-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedules: scheduleData })
+        body: JSON.stringify({ schedules: allScheduleData })
       });
 
       if (!response.ok) {
@@ -193,7 +252,9 @@ export default function CreateScheduleModal({
       }
 
       const result = await response.json();
-      toast.success(`Successfully created ${result.created} schedule(s)`);
+      const totalDays = workingDates.length;
+      const totalRoutes = selectedRoutes.length;
+      toast.success(`Successfully created ${result.created} schedule(s) for ${totalRoutes} route(s) across ${totalDays} day(s)`);
       onScheduleCreated();
       onClose();
     } catch (error) {
@@ -207,7 +268,7 @@ export default function CreateScheduleModal({
   const allSelected = routes.length > 0 && selectedRoutes.length === routes.length;
   const someSelected = selectedRoutes.length > 0 && selectedRoutes.length < routes.length;
 
-  if (!isOpen || !selectedDate) return null;
+  if (!isOpen || (workingDates.length === 0 && !selectedDate)) return null;
 
   return (
     <AnimatePresence>
@@ -228,12 +289,18 @@ export default function CreateScheduleModal({
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Create Schedules</h2>
                 <p className="text-sm text-gray-600">
-                  Enable booking for {selectedDate.toLocaleDateString('en-US', { 
+                  {isMultiDayMode ? (
+                    `Enable booking for ${workingDates.length} selected day${workingDates.length !== 1 ? 's' : ''}`
+                  ) : workingDates.length > 0 ? (
+                    `Enable booking for ${workingDates[0].toLocaleDateString('en-US', { 
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
-                  })}
+                    })}`
+                  ) : (
+                    'Select dates to enable booking'
+                  )}
                 </p>
               </div>
               <button
@@ -253,6 +320,70 @@ export default function CreateScheduleModal({
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Date Selection */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Select Dates</h3>
+                    <button
+                      onClick={addDateToSelection}
+                      className="flex items-center space-x-2 px-3 py-2 bg-blue-50 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Date</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {workingDates.map((date, index) => (
+                      <div
+                        key={index}
+                        className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700">
+                            Date {index + 1}
+                          </label>
+                          {workingDates.length > 1 && (
+                            <button
+                              onClick={() => removeDateFromSelection(date)}
+                              className="p-1 text-red-400 hover:text-red-600 transition-colors"
+                              title="Remove this date"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="date"
+                          value={date.toISOString().split('T')[0]}
+                          min={getMinimumScheduleDate().toISOString().split('T')[0]}
+                          onChange={(e) => updateSelectedDate(index, new Date(e.target.value + 'T00:00:00'))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <div className="mt-2 text-xs text-gray-600">
+                          {date.toLocaleDateString('en-US', { 
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {workingDates.length > 1 && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900">Multi-Day Scheduling</span>
+                      </div>
+                      <p className="text-sm text-blue-800">
+                        Schedules will be created for {workingDates.length} days. Each selected route will be scheduled for all selected dates.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Route Selection */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -372,13 +503,27 @@ export default function CreateScheduleModal({
                     </div>
                     <p className="text-sm text-blue-800">
                       {selectedRoutes.length} route{selectedRoutes.length !== 1 ? 's' : ''} will be enabled for booking on{' '}
-                      {selectedDate.toLocaleDateString()}
+                      {isMultiDayMode ? (
+                        `${workingDates.length} selected day${workingDates.length !== 1 ? 's' : ''}`
+                      ) : workingDates.length > 0 ? (
+                        workingDates[0].toLocaleDateString()
+                      ) : (
+                        'selected date(s)'
+                      )}
                     </p>
                     <div className="mt-2 text-sm text-blue-700">
-                      Total capacity: {selectedRoutes.reduce((sum, routeId) => {
+                      Total capacity per day: {selectedRoutes.reduce((sum, routeId) => {
                         const route = routes.find(r => r.id === routeId);
                         return sum + (route?.total_capacity || 0);
                       }, 0)} seats
+                      {isMultiDayMode && (
+                        <div className="mt-1">
+                          Total capacity across all days: {(selectedRoutes.reduce((sum, routeId) => {
+                            const route = routes.find(r => r.id === routeId);
+                            return sum + (route?.total_capacity || 0);
+                          }, 0) * workingDates.length)} seats
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -389,7 +534,13 @@ export default function CreateScheduleModal({
           <div className="p-6 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
+                {workingDates.length} date{workingDates.length !== 1 ? 's' : ''} • {' '}
                 {selectedRoutes.length} route{selectedRoutes.length !== 1 ? 's' : ''} selected
+                {isMultiDayMode && selectedRoutes.length > 0 && (
+                  <div className="mt-1 text-xs text-blue-600">
+                    Total schedules to create: {workingDates.length * selectedRoutes.length}
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-3">
                 <button
@@ -400,7 +551,7 @@ export default function CreateScheduleModal({
                 </button>
                 <button
                   onClick={createSchedules}
-                  disabled={creating || selectedRoutes.length === 0}
+                  disabled={creating || selectedRoutes.length === 0 || workingDates.length === 0}
                   className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {creating ? (

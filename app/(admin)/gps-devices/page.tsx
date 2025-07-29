@@ -27,6 +27,7 @@ import {
 import toast from 'react-hot-toast';
 import UniversalStatCard from '@/components/universal-stat-card';
 import AddGPSDeviceModal from '@/components/add-gps-device-modal';
+import MercydaGpsIntegration from '@/components/mercyda-gps-integration';
 
 const GPSDeviceCard = ({ device, onEdit, onDelete, onView, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
@@ -199,6 +200,7 @@ const GPSDevicesPage = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<any>(null);
   const [viewingDevice, setViewingDevice] = useState<any>(null);
+  const [isMercydaModalOpen, setIsMercydaModalOpen] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('adminUser');
@@ -286,15 +288,26 @@ const GPSDevicesPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">GPS Devices Management</h1>
           <p className="text-gray-600">Manage GPS tracking devices for your vehicle fleet</p>
         </div>
-        {canAddDevice && (
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add GPS Device</span>
-          </button>
-        )}
+        <div className="flex items-center space-x-3">
+          {canAddDevice && (
+            <button
+              onClick={() => setIsMercydaModalOpen(true)}
+              className="btn-secondary flex items-center space-x-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span>MERCYDA Integration</span>
+            </button>
+          )}
+          {canAddDevice && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add GPS Device</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -412,6 +425,13 @@ const GPSDevicesPage = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={fetchDevices}
       />
+
+      {/* MERCYDA GPS Integration Modal */}
+      {isMercydaModalOpen && (
+        <MercydaGpsIntegration
+          onClose={() => setIsMercydaModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

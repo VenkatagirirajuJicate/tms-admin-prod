@@ -35,7 +35,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
@@ -52,42 +53,104 @@ import SemesterFeeManagement from '@/components/semester-fee-management';
 const OutstandingDuesCard = ({ due, onPaymentPlan, onSendReminder, userRole }: any) => {
   const canManage = ['super_admin', 'finance_admin'].includes(userRole);
   
+  // Calculate overdue days for the oldest pending payment
+  const oldestOverdueDays = due.termBreakdown?.reduce((max: number, term: any) => {
+    if (term.overdueDays > max) return term.overdueDays;
+    return max;
+  }, 0) || 0;
+  
+  const getUrgencyColor = (days: number) => {
+    if (days >= 30) return 'from-red-600 to-red-700';
+    if (days >= 15) return 'from-orange-500 to-red-500';
+    if (days >= 7) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-orange-600';
+  };
+  
+  const getUrgencyBadge = (days: number) => {
+    if (days >= 30) return { text: 'Critical', color: 'bg-red-100 text-red-800' };
+    if (days >= 15) return { text: 'High', color: 'bg-orange-100 text-orange-800' };
+    if (days >= 7) return { text: 'Medium', color: 'bg-yellow-100 text-yellow-800' };
+    return { text: 'Low', color: 'bg-gray-100 text-gray-800' };
+  };
+
+  const urgencyBadge = getUrgencyBadge(oldestOverdueDays);
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-sm border border-red-200 p-6"
+      className="bg-white rounded-xl shadow-sm border border-red-200 p-6 hover:shadow-md transition-shadow"
     >
+      {/* Header Section */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center">
+          <div className={`w-12 h-12 bg-gradient-to-r ${getUrgencyColor(oldestOverdueDays)} rounded-full flex items-center justify-center`}>
             <AlertTriangle className="w-6 h-6 text-white" />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{due.studentName || 'Student'}</h3>
-            <p className="text-sm text-gray-600">{due.rollNumber || due.studentId}</p>
+          <div className="flex-1">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{due.studentName}</h3>
+                <p className="text-sm text-gray-600">{due.rollNumber}</p>
+                {due.department && (
+                  <p className="text-xs text-gray-500 mt-1">{due.department}</p>
+                )}
+              </div>
+              <div className="ml-4">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${urgencyBadge.color}`}>
+                  {urgencyBadge.text} Priority
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-xl font-bold text-red-600">â‚¹{due.totalOutstanding}</span>
+          <span className="text-xl font-bold text-red-600">₹{due.totalOutstanding?.toLocaleString() || 0}</span>
           <p className="text-xs text-gray-500">Total Outstanding</p>
+          {oldestOverdueDays > 0 && (
+            <p className="text-xs text-red-500 font-medium">{oldestOverdueDays} days overdue</p>
+          )}
         </div>
       </div>
 
-      <div className="space-y-2 mb-4">
-        {due.breakdown.map((item: any, index: number) => (
-          <div key={index} className="flex justify-between items-center text-sm">
-            <span className="text-gray-600 capitalize">{item.type.replace('_', ' ')}</span>
-            <div className="text-right">
-              <span className="font-medium">â‚¹{item.amount}</span>
-              {item.overdueDays > 0 && (
-                <p className="text-xs text-red-500">{item.overdueDays} days overdue</p>
-              )}
-            </div>
-          </div>
-        ))}
+      {/* Student Details */}
+      <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+        <div>
+          <p className="text-xs text-gray-500">Academic Year</p>
+          <p className="text-sm font-medium">{due.academicYear || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Contact</p>
+          <p className="text-sm font-medium truncate">{due.contact || 'N/A'}</p>
+        </div>
       </div>
 
+      {/* Term-wise Breakdown */}
+      <div className="space-y-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Outstanding by Term:</h4>
+        {due.termBreakdown?.length > 0 ? (
+          due.termBreakdown.map((term: any, index: number) => (
+            <div key={index} className="flex justify-between items-center text-sm p-2 bg-red-50 rounded">
+              <div>
+                <span className="font-medium text-gray-700">
+                  {term.academicYear} - Term {term.semester}
+                </span>
+                {term.overdueDays > 0 && (
+                  <span className="text-xs text-red-600 ml-2">({term.overdueDays} days overdue)</span>
+                )}
+              </div>
+              <div className="text-right">
+                <span className="font-semibold text-red-600">₹{term.amount?.toLocaleString() || 0}</span>
+                <p className="text-xs text-gray-500 capitalize">{term.status}</p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-gray-500 italic">No detailed breakdown available</div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
       {canManage && (
         <div className="flex space-x-2 pt-4 border-t border-gray-100">
           <button
@@ -103,6 +166,14 @@ const OutstandingDuesCard = ({ due, onPaymentPlan, onSendReminder, userRole }: a
           >
             <Calculator className="w-4 h-4" />
             <span>Payment Plan</span>
+          </button>
+          <button
+            onClick={() => window.open(`tel:${due.contact}`, '_self')}
+            className="flex-1 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center space-x-1"
+            disabled={!due.contact}
+          >
+            <Phone className="w-4 h-4" />
+            <span>Call</span>
           </button>
         </div>
       )}
@@ -209,7 +280,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, settings, onSave }: any) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Semester Fee Base</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Term Fee Base</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">â‚¹</span>
                       <input
@@ -222,6 +293,7 @@ const PaymentSettingsModal = ({ isOpen, onClose, settings, onSave }: any) => {
                             semesterFeeBase: parseInt(e.target.value)
                           }
                         })}
+                        // Note: Internal property names kept for compatibility
                         className="pl-8 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -702,7 +774,7 @@ const RevenueAnalytics = ({ data }: any) => {
                 <span className="font-medium">â‚¹{day.fines}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Semester Fees</span>
+                <span className="text-sm text-gray-600">Term Fees</span>
                 <span className="font-medium">â‚¹{day.semesterFees}</span>
               </div>
               <div className="flex justify-between border-t pt-2">
@@ -794,6 +866,14 @@ const PaymentsPage = () => {
   const [showPaymentPlan, setShowPaymentPlan] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
   const [selectedDue, setSelectedDue] = useState<any>(null);
+  
+  // Outstanding dues filters
+  const [outstandingSearchTerm, setOutstandingSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [academicYearFilter, setAcademicYearFilter] = useState('all');
+  const [termFilter, setTermFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [amountFilter, setAmountFilter] = useState('all');
 
   // Add missing paymentSettings state
   const [paymentSettings, setPaymentSettings] = useState({
@@ -920,18 +1000,88 @@ const PaymentsPage = () => {
     }))
   };
 
+  // Enhanced outstanding dues calculation with term-wise breakdown
   const outstandingDues = students.map(student => {
     const studentPayments = payments.filter(p => p.student_id === student.id);
-    const totalDue = studentPayments.filter(p => p.status === 'pending' || p.status === 'overdue').reduce((sum, p) => sum + (p.amount || 0), 0);
+    const pendingPayments = studentPayments.filter(p => p.status === 'pending' || p.status === 'overdue');
+    
+    if (pendingPayments.length === 0) return null;
+    
+    const totalDue = pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    
+    // Create term-wise breakdown
+    const termBreakdown = pendingPayments.map(payment => {
+      const dueDate = new Date(payment.created_at);
+      dueDate.setDate(dueDate.getDate() + 30); // Assume 30 days payment period
+      const today = new Date();
+      const overdueDays = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      return {
+        academicYear: payment.academic_year || '2025-26',
+        semester: payment.semester || 1,
+        amount: payment.amount || 0,
+        status: payment.status || 'pending',
+        overdueDays: overdueDays,
+        dueDate: dueDate.toISOString().split('T')[0]
+      };
+    });
+    
     return {
       id: student.id,
-      student_name: student.student_name,
-      roll_number: student.roll_number,
-      amount: totalDue,
-      overdue_days: 0, // Would need calculation based on due dates
-      contact: student.mobile || student.email
+      studentName: student.student_name,
+      rollNumber: student.roll_number,
+      department: student.department_name,
+      academicYear: student.academic_year ? `${student.academic_year}-${(student.academic_year + 1).toString().slice(-2)}` : 'N/A',
+      totalOutstanding: totalDue,
+      contact: student.mobile || student.email,
+      termBreakdown: termBreakdown
     };
-  }).filter(due => due.amount > 0);
+  }).filter(due => due !== null);
+
+  // Extract unique values for outstanding dues filters
+  const uniqueDepartments = [...new Set(outstandingDues.map(due => due.department).filter(Boolean))];
+  const uniqueAcademicYears = [...new Set(outstandingDues.map(due => due.academicYear).filter(Boolean))];
+  const uniqueTerms = [...new Set(outstandingDues.flatMap(due => 
+    due.termBreakdown.map(term => term.semester)
+  ))].sort((a, b) => a - b);
+
+  // Helper function to determine priority based on overdue days
+  const getPriority = (due: any) => {
+    const maxOverdueDays = due.termBreakdown.reduce((max: number, term: any) => 
+      Math.max(max, term.overdueDays), 0);
+    if (maxOverdueDays >= 30) return 'critical';
+    if (maxOverdueDays >= 15) return 'high';
+    if (maxOverdueDays >= 7) return 'medium';
+    return 'low';
+  };
+
+  // Filter outstanding dues
+  const filteredOutstandingDues = outstandingDues.filter(due => {
+    const matchesSearch = due.studentName.toLowerCase().includes(outstandingSearchTerm.toLowerCase()) ||
+                         due.rollNumber.toLowerCase().includes(outstandingSearchTerm.toLowerCase()) ||
+                         (due.department || '').toLowerCase().includes(outstandingSearchTerm.toLowerCase());
+    
+    const matchesDepartment = departmentFilter === 'all' || due.department === departmentFilter;
+    const matchesAcademicYear = academicYearFilter === 'all' || due.academicYear === academicYearFilter;
+    
+    const matchesTerm = termFilter === 'all' || 
+                       due.termBreakdown.some(term => term.semester.toString() === termFilter);
+    
+    const priority = getPriority(due);
+    const matchesPriority = priorityFilter === 'all' || priority === priorityFilter;
+    
+    let matchesAmount = true;
+    if (amountFilter === 'low') {
+      matchesAmount = due.totalOutstanding < 5000;
+    } else if (amountFilter === 'medium') {
+      matchesAmount = due.totalOutstanding >= 5000 && due.totalOutstanding < 15000;
+    } else if (amountFilter === 'high') {
+      matchesAmount = due.totalOutstanding >= 15000;
+    }
+    
+    return matchesSearch && matchesDepartment && matchesAcademicYear && 
+           matchesTerm && matchesPriority && matchesAmount;
+  });
 
   const filteredPayments = payments.filter(payment => {
     const student = students.find(s => s.id === payment.student_id);
@@ -975,7 +1125,7 @@ const PaymentsPage = () => {
 
   const tabs = [
     { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'semester-fees', label: 'Semester Fees', icon: DollarSign },
+    { id: 'term-fees', label: '3-Term Fees', icon: DollarSign },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'outstanding', label: 'Outstanding Dues', icon: AlertTriangle },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -1475,7 +1625,7 @@ const PaymentsPage = () => {
                     <option value="all">All Types</option>
                     <option value="trip_fare">Trip Fare</option>
                     <option value="fine">Fine</option>
-                    <option value="semester_fee">Semester Fee</option>
+                    <option value="semester_fee">Term Fee</option>
                     <option value="registration">Registration</option>
                   </select>
                   <select
@@ -1530,9 +1680,9 @@ const PaymentsPage = () => {
           </motion.div>
         )}
 
-        {activeTab === 'semester-fees' && (
+        {activeTab === 'term-fees' && (
           <motion.div
-            key="semester-fees"
+            key="term-fees"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -1560,8 +1710,153 @@ const PaymentsPage = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              {outstandingDues.map((due) => (
+            {/* Outstanding Dues Filters */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                Outstanding Dues Filters
+              </h3>
+              
+              {/* Search Bar */}
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search by student name, roll number, or department..."
+                    value={outstandingSearchTerm}
+                    onChange={(e) => setOutstandingSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Filter Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
+                {/* Department Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <select
+                    value={departmentFilter}
+                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Departments</option>
+                    {uniqueDepartments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Academic Year Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+                  <select
+                    value={academicYearFilter}
+                    onChange={(e) => setAcademicYearFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Years</option>
+                    {uniqueAcademicYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Term Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Term/Semester</label>
+                  <select
+                    value={termFilter}
+                    onChange={(e) => setTermFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Terms</option>
+                    {uniqueTerms.map(term => (
+                      <option key={term} value={term}>Term {term}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Priority Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Priority</option>
+                    <option value="critical">Critical (30+ days)</option>
+                    <option value="high">High (15+ days)</option>
+                    <option value="medium">Medium (7+ days)</option>
+                    <option value="low">Low (&lt; 7 days)</option>
+                  </select>
+                </div>
+
+                {/* Amount Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
+                  <select
+                    value={amountFilter}
+                    onChange={(e) => setAmountFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="all">All Amounts</option>
+                    <option value="low">&lt; ₹5,000</option>
+                    <option value="medium">₹5,000 - ₹15,000</option>
+                    <option value="high">&gt; ₹15,000</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters Button */}
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setOutstandingSearchTerm('');
+                      setDepartmentFilter('all');
+                      setAcademicYearFilter('all');
+                      setTermFilter('all');
+                      setPriorityFilter('all');
+                      setAmountFilter('all');
+                    }}
+                    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Statistics */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600">{filteredOutstandingDues.length}</p>
+                  <p className="text-sm text-gray-600">Students with Dues</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600">
+                    ₹{filteredOutstandingDues.reduce((sum, due) => sum + due.totalOutstanding, 0).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600">Total Outstanding</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">
+                    {filteredOutstandingDues.filter(due => getPriority(due) === 'critical').length}
+                  </p>
+                  <p className="text-sm text-gray-600">Critical Priority</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {Math.round(filteredOutstandingDues.reduce((sum, due) => sum + due.totalOutstanding, 0) / Math.max(filteredOutstandingDues.length, 1))}
+                  </p>
+                  <p className="text-sm text-gray-600">Avg. Outstanding</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Outstanding Dues Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredOutstandingDues.map((due) => (
                 <OutstandingDuesCard
                   key={due.id}
                   due={due}
@@ -1571,6 +1866,15 @@ const PaymentsPage = () => {
                 />
               ))}
             </div>
+
+            {/* Empty State */}
+            {filteredOutstandingDues.length === 0 && outstandingDues.length > 0 && (
+              <div className="text-center py-12">
+                <Filter className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No matching results</h3>
+                <p className="text-gray-600">Try adjusting your filters to see more results.</p>
+              </div>
+            )}
 
             {outstandingDues.length === 0 && (
               <div className="text-center py-12">

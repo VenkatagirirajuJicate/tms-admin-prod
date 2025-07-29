@@ -951,38 +951,67 @@ const AddStudentModal = ({ isOpen, onClose, onSave, selectedStudent }: any) => {
       console.log('🔍 Debug student_email from API:', matchedStudent.student_email);
       console.log('🔍 Debug COMPLETE API object:', JSON.stringify(matchedStudent, null, 2));
       
-            // Robust mapping from external API response with multiple field name attempts
+            // Updated mapping for new external API schema
       const finalStudentData = {
         id: matchedStudent.id,
-        student_name: matchedStudent.student_name || matchedStudent.name || matchedStudent.studentName || 'Unknown Student',
-        student_email: matchedStudent.student_email || matchedStudent.email || matchedStudent.studentEmail || matchedStudent.college_email || email,
-        college_email: matchedStudent.college_email || matchedStudent.collegeEmail || email,
-        student_mobile: matchedStudent.student_mobile || matchedStudent.mobile || matchedStudent.phone || matchedStudent.studentMobile || 'Not provided',
-        department_name: typeof matchedStudent.department === 'object' 
-          ? (matchedStudent.department?.department_name || matchedStudent.department?.name || 'Unknown Department')
-          : (matchedStudent.department || matchedStudent.department_name || 'Unknown Department'),
-        institution_name: typeof matchedStudent.institution === 'object'
-          ? (matchedStudent.institution?.name || 'Unknown Institution')
-          : (matchedStudent.institution || matchedStudent.institution_name || 'Unknown Institution'),
-        roll_number: matchedStudent.roll_number || matchedStudent.rollNumber || matchedStudent.rollNo || `STU${Date.now().toString().slice(-6)}`,
-        // Additional fields from API using multiple field name attempts
-        father_name: matchedStudent.father_name || matchedStudent.fatherName || '',
-        mother_name: matchedStudent.mother_name || matchedStudent.motherName || '',
-        father_mobile: matchedStudent.father_mobile || matchedStudent.fatherMobile || '',
-        mother_mobile: matchedStudent.mother_mobile || matchedStudent.motherMobile || '',
-        date_of_birth: matchedStudent.date_of_birth || matchedStudent.dateOfBirth || matchedStudent.dob || '',
+        // Combine first_name and last_name for student_name
+        student_name: matchedStudent.first_name && matchedStudent.last_name 
+          ? `${matchedStudent.first_name} ${matchedStudent.last_name}`.trim()
+          : matchedStudent.first_name || 'Unknown Student',
+        first_name: matchedStudent.first_name || '',
+        last_name: matchedStudent.last_name || '',
+        student_email: matchedStudent.student_email || matchedStudent.college_email || email,
+        college_email: matchedStudent.college_email || matchedStudent.student_email || email,
+        student_mobile: matchedStudent.student_mobile || matchedStudent.father_mobile || matchedStudent.mother_mobile || 'Not provided',
+        // Handle nested objects from new schema
+        department_name: matchedStudent.department?.department_name || 'Unknown Department',
+        institution_name: matchedStudent.institution?.name || 'Unknown Institution',
+        program_name: matchedStudent.program?.program_name || '',
+        degree_name: matchedStudent.degree?.degree_name || '',
+        roll_number: matchedStudent.roll_number || `STU${Date.now().toString().slice(-6)}`,
+        // Parent information
+        father_name: matchedStudent.father_name || '',
+        mother_name: matchedStudent.mother_name || '',
+        father_mobile: matchedStudent.father_mobile || '',
+        mother_mobile: matchedStudent.mother_mobile || '',
+        father_occupation: matchedStudent.father_occupation || '',
+        mother_occupation: matchedStudent.mother_occupation || '',
+        // Personal details
+        date_of_birth: matchedStudent.date_of_birth || '',
         gender: matchedStudent.gender || '',
-        program_name: typeof matchedStudent.program === 'object'
-          ? (matchedStudent.program?.program_name || matchedStudent.program?.name || '')
-          : (matchedStudent.program || matchedStudent.program_name || ''),
-        degree_name: typeof matchedStudent.degree === 'object'
-          ? (matchedStudent.degree?.degree_name || matchedStudent.degree?.name || '')
-          : (matchedStudent.degree || matchedStudent.degree_name || ''),
-        permanent_address_street: matchedStudent.permanent_address_street || matchedStudent.address?.street || '',
-        permanent_address_district: matchedStudent.permanent_address_district || matchedStudent.address?.district || '',
-        permanent_address_state: matchedStudent.permanent_address_state || matchedStudent.address?.state || '',
-        permanent_address_pin_code: matchedStudent.permanent_address_pin_code || matchedStudent.address?.pinCode || '',
-        is_profile_complete: matchedStudent.is_profile_complete || matchedStudent.isProfileComplete || false
+        religion: matchedStudent.religion || '',
+        community: matchedStudent.community || '',
+        caste: matchedStudent.caste || '',
+        annual_income: matchedStudent.annual_income || '',
+        // Academic details
+        admission_id: matchedStudent.admission_id,
+        application_id: matchedStudent.application_id,
+        semester_id: matchedStudent.semester_id || '',
+        section_id: matchedStudent.section_id || '',
+        academic_year_id: matchedStudent.academic_year_id || '',
+        entry_type: matchedStudent.entry_type || '',
+        last_school: matchedStudent.last_school || '',
+        board_of_study: matchedStudent.board_of_study || '',
+        tenth_marks: matchedStudent.tenth_marks || {},
+        twelfth_marks: matchedStudent.twelfth_marks || {},
+        // Address information
+        permanent_address_street: matchedStudent.permanent_address_street || '',
+        permanent_address_taluk: matchedStudent.permanent_address_taluk || '',
+        permanent_address_district: matchedStudent.permanent_address_district || '',
+        permanent_address_state: matchedStudent.permanent_address_state || '',
+        permanent_address_pin_code: matchedStudent.permanent_address_pin_code || '',
+        // Transport related
+        bus_required: matchedStudent.bus_required || false,
+        bus_route: matchedStudent.bus_route || '',
+        bus_pickup_location: matchedStudent.bus_pickup_location || '',
+        // Other details
+        accommodation_type: matchedStudent.accommodation_type || '',
+        hostel_type: matchedStudent.hostel_type || '',
+        student_photo_url: matchedStudent.student_photo_url,
+        is_profile_complete: matchedStudent.is_profile_complete || false,
+        status: matchedStudent.status || 'active',
+        created_at: matchedStudent.created_at,
+        updated_at: matchedStudent.updated_at
       };
       
       console.log('🔍 Final fetchedStudent object being set:', finalStudentData);
@@ -1871,13 +1900,29 @@ const StudentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
-  const [enrollmentFilter, setEnrollmentFilter] = useState('all'); // new filter
+  const [enrollmentFilter, setEnrollmentFilter] = useState('all');
+  // New comprehensive filters
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [routeFilter, setRouteFilter] = useState('all');
+  const [academicYearFilter, setAcademicYearFilter] = useState('all');
+  const [semesterFilter, setSemesterFilter] = useState('all');
+  const [genderFilter, setGenderFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAvailableStudent, setSelectedAvailableStudent] = useState<any>(null);
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [viewingStudent, setViewingStudent] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 100;
+  
+  // Filter options state
+  const [uniqueDepartments, setUniqueDepartments] = useState<string[]>([]);
+  const [uniqueRoutes, setUniqueRoutes] = useState<any[]>([]);
+  const [uniqueAcademicYears, setUniqueAcademicYears] = useState<string[]>([]);
+  const [uniqueSemesters, setUniqueSemesters] = useState<number[]>([]);
   
   useEffect(() => {
     const userData = localStorage.getItem('adminUser');
@@ -2010,46 +2055,74 @@ const StudentsPage = () => {
       });
 
       // Transform available students to match UI format
-      const transformedAvailableStudents = availableExternalStudents.map(externalStudent => ({
+            const transformedAvailableStudents = availableExternalStudents.map(externalStudent => ({
         id: `external_${externalStudent.id}`, // Prefix to avoid conflicts
-        student_name: externalStudent.student_name,
+        // Combine first_name and last_name for display
+        student_name: externalStudent.first_name && externalStudent.last_name 
+          ? `${externalStudent.first_name} ${externalStudent.last_name}`.trim()
+          : externalStudent.first_name || 'Unknown Student',
+        first_name: externalStudent.first_name,
+        last_name: externalStudent.last_name,
         roll_number: externalStudent.roll_number,
         student_email: externalStudent.student_email,
         college_email: externalStudent.college_email,
-        student_mobile: externalStudent.student_mobile,
+        student_mobile: externalStudent.student_mobile || externalStudent.father_mobile || externalStudent.mother_mobile,
+        // Handle nested objects from new schema
         department: {
-          department_name: typeof externalStudent.department === 'object' 
-            ? (externalStudent.department?.department_name || externalStudent.department?.name || 'Unknown Department')
-            : (externalStudent.department || 'Unknown Department')
+          department_name: externalStudent.department?.department_name || 'Unknown Department'
         },
         institution: {
-          name: typeof externalStudent.institution === 'object'
-            ? (externalStudent.institution?.name || externalStudent.institution?.institution_name || 'Unknown Institution')
-            : (externalStudent.institution || 'Unknown Institution')
+          name: externalStudent.institution?.name || 'Unknown Institution'
         },
         program: {
-          program_name: typeof externalStudent.program === 'object'
-            ? (externalStudent.program?.program_name || externalStudent.program?.name || '')
-            : (externalStudent.program || '')
+          program_name: externalStudent.program?.program_name || ''
         },
         degree: {
-          degree_name: typeof externalStudent.degree === 'object'
-            ? (externalStudent.degree?.degree_name || externalStudent.degree?.name || '')
-            : (externalStudent.degree || '')
+          degree_name: externalStudent.degree?.degree_name || ''
         },
+        // Parent information
         father_name: externalStudent.father_name,
         mother_name: externalStudent.mother_name,
         father_mobile: externalStudent.father_mobile,
         mother_mobile: externalStudent.mother_mobile,
+        father_occupation: externalStudent.father_occupation,
+        mother_occupation: externalStudent.mother_occupation,
+        // Personal details
         date_of_birth: externalStudent.date_of_birth,
         gender: externalStudent.gender,
+        religion: externalStudent.religion,
+        community: externalStudent.community,
+        caste: externalStudent.caste,
+        annual_income: externalStudent.annual_income,
+        // Academic details
+        admission_id: externalStudent.admission_id,
+        application_id: externalStudent.application_id,
+        semester_id: externalStudent.semester_id,
+        section_id: externalStudent.section_id,
+        academic_year_id: externalStudent.academic_year_id,
+        entry_type: externalStudent.entry_type,
+        last_school: externalStudent.last_school,
+        board_of_study: externalStudent.board_of_study,
+        tenth_marks: externalStudent.tenth_marks,
+        twelfth_marks: externalStudent.twelfth_marks,
+        // Address information
         address: {
           street: externalStudent.permanent_address_street || '',
+          taluk: externalStudent.permanent_address_taluk || '',
           district: externalStudent.permanent_address_district || '',
           state: externalStudent.permanent_address_state || '',
           pinCode: externalStudent.permanent_address_pin_code || ''
         },
+        // Transport related
+        bus_required: externalStudent.bus_required,
+        bus_route: externalStudent.bus_route,
+        bus_pickup_location: externalStudent.bus_pickup_location,
+        // Other details
+        accommodation_type: externalStudent.accommodation_type,
+        hostel_type: externalStudent.hostel_type,
+        student_photo_url: externalStudent.student_photo_url,
         is_profile_complete: externalStudent.is_profile_complete,
+        status: externalStudent.status,
         external_id: externalStudent.id,
         student_transport_profiles: [], // Not enrolled in transport
         _isTransportUser: false,
@@ -2067,6 +2140,9 @@ const StudentsPage = () => {
       
       toast.success(`Loaded ${transformedEnrolledStudents.length} enrolled and ${transformedAvailableStudents.length} available students`);
       
+      // Extract unique values for filters
+      extractFilterOptions(allStudents);
+      
     } catch (error) {
       console.error('Error fetching students:', {
         message: error instanceof Error ? error.message : 'Unknown error',
@@ -2082,6 +2158,131 @@ const StudentsPage = () => {
       setAvailableStudents([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to generate academic years
+  const generateAcademicYears = () => {
+    const currentYear = new Date().getFullYear();
+    const academicYears = [];
+    
+    // Generate academic years from 3 years back to 2 years forward
+    for (let i = -3; i <= 2; i++) {
+      const startYear = currentYear + i;
+      const endYear = startYear + 1;
+      academicYears.push(`${startYear}-${String(endYear).slice(-2)}`);
+    }
+    
+    return academicYears;
+  };
+
+  // Helper function to determine academic year from student data
+  const getStudentAcademicYear = (student: any) => {
+    // Try to determine academic year based on available data
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+    
+    // Academic year typically starts in June/July
+    let academicStartYear;
+    if (currentMonth >= 6) {
+      academicStartYear = currentYear;
+    } else {
+      academicStartYear = currentYear - 1;
+    }
+    
+    // Check if student has a created_at date to infer their academic year
+    if (student.created_at) {
+      const createdDate = new Date(student.created_at);
+      const createdYear = createdDate.getFullYear();
+      const createdMonth = createdDate.getMonth() + 1;
+      
+      if (createdMonth >= 6) {
+        academicStartYear = createdYear;
+      } else {
+        academicStartYear = createdYear - 1;
+      }
+    }
+    
+    return `${academicStartYear}-${String(academicStartYear + 1).slice(-2)}`;
+  };
+
+  // Extract unique values for filter dropdowns
+  const extractFilterOptions = (studentsList: any[]) => {
+    try {
+      // Extract unique departments
+      const departments = new Set<string>();
+      const routes = new Map<string, any>();
+      const academicYears = new Set<string>();
+      const semesters = new Set<number>();
+
+      studentsList.forEach(student => {
+        // Department
+        const dept = student.department?.department_name || student.department_name;
+        if (dept) departments.add(dept);
+
+        // Route (only for enrolled students with routes)
+        const transportProfile = student.student_transport_profiles?.[0];
+        const routeId = transportProfile?.allocated_route_id || student.allocated_route_id;
+        if (routeId && student._enrollmentStatus === 'enrolled') {
+          // We'll need to fetch route details, for now store the ID
+          routes.set(routeId, { id: routeId, route_number: 'Loading...', route_name: '' });
+        }
+
+        // Academic Year - use computed academic year
+        const academicYear = getStudentAcademicYear(student);
+        academicYears.add(academicYear);
+
+        // Semester
+        const semester = student.semester;
+        if (semester && !isNaN(semester)) semesters.add(parseInt(semester.toString()));
+      });
+
+      setUniqueDepartments(Array.from(departments).sort());
+      setUniqueRoutes(Array.from(routes.values()));
+      // Use computed academic years from actual student data
+      const yearsList = Array.from(academicYears).sort();
+      // Also include common academic years to ensure good coverage
+      const generatedYears = generateAcademicYears();
+      const allYears = [...new Set([...yearsList, ...generatedYears])].sort();
+      setUniqueAcademicYears(allYears);
+      setUniqueSemesters(Array.from(semesters).sort((a, b) => a - b));
+
+      // Fetch route details for better display
+      if (routes.size > 0) {
+        fetchRouteDetails(Array.from(routes.keys()));
+      }
+
+    } catch (error) {
+      console.error('Error extracting filter options:', error);
+    }
+  };
+
+  // Fetch route details for route filter
+  const fetchRouteDetails = async (routeIds: string[]) => {
+    try {
+      if (routeIds.length === 0) return;
+
+      const routePromises = routeIds.map(async (routeId) => {
+        try {
+          const route = await DatabaseService.getRouteById(routeId);
+          return route && typeof route === 'object' && 'id' in route ? {
+            id: (route as any).id,
+            route_number: (route as any).route_number || 'N/A',
+            route_name: (route as any).route_name || 'Unknown Route'
+          } : null;
+        } catch (error) {
+          console.error(`Error fetching route ${routeId}:`, error);
+          return { id: routeId, route_number: 'Error', route_name: 'Failed to load' };
+        }
+      });
+
+      const routeDetails = await Promise.all(routePromises);
+      const validRoutes = routeDetails.filter(route => route !== null);
+      setUniqueRoutes(validRoutes);
+
+    } catch (error) {
+      console.error('Error fetching route details:', error);
     }
   };
 
@@ -2219,44 +2420,72 @@ const StudentsPage = () => {
             if (externalStudent) {
               const transformedAvailableStudent = {
                 id: `external_${externalStudent.id}`,
-                student_name: externalStudent.student_name,
+                // Combine first_name and last_name for display
+                student_name: externalStudent.first_name && externalStudent.last_name 
+                  ? `${externalStudent.first_name} ${externalStudent.last_name}`.trim()
+                  : externalStudent.first_name || 'Unknown Student',
+                first_name: externalStudent.first_name,
+                last_name: externalStudent.last_name,
                 roll_number: externalStudent.roll_number,
                 student_email: externalStudent.student_email,
                 college_email: externalStudent.college_email,
-                student_mobile: externalStudent.student_mobile,
+                student_mobile: externalStudent.student_mobile || externalStudent.father_mobile || externalStudent.mother_mobile,
+                // Handle nested objects from new schema
                 department: {
-                  department_name: typeof externalStudent.department === 'object' 
-                    ? (externalStudent.department?.department_name || externalStudent.department?.name || 'Unknown Department')
-                    : (externalStudent.department || 'Unknown Department')
+                  department_name: externalStudent.department?.department_name || 'Unknown Department'
                 },
                 institution: {
-                  name: typeof externalStudent.institution === 'object'
-                    ? (externalStudent.institution?.name || externalStudent.institution?.institution_name || 'Unknown Institution')
-                    : (externalStudent.institution || 'Unknown Institution')
+                  name: externalStudent.institution?.name || 'Unknown Institution'
                 },
                 program: {
-                  program_name: typeof externalStudent.program === 'object'
-                    ? (externalStudent.program?.program_name || externalStudent.program?.name || '')
-                    : (externalStudent.program || '')
+                  program_name: externalStudent.program?.program_name || ''
                 },
                 degree: {
-                  degree_name: typeof externalStudent.degree === 'object'
-                    ? (externalStudent.degree?.degree_name || externalStudent.degree?.name || '')
-                    : (externalStudent.degree || '')
+                  degree_name: externalStudent.degree?.degree_name || ''
                 },
+                // Parent information
                 father_name: externalStudent.father_name,
                 mother_name: externalStudent.mother_name,
                 father_mobile: externalStudent.father_mobile,
                 mother_mobile: externalStudent.mother_mobile,
+                father_occupation: externalStudent.father_occupation,
+                mother_occupation: externalStudent.mother_occupation,
+                // Personal details
                 date_of_birth: externalStudent.date_of_birth,
                 gender: externalStudent.gender,
+                religion: externalStudent.religion,
+                community: externalStudent.community,
+                caste: externalStudent.caste,
+                annual_income: externalStudent.annual_income,
+                // Academic details
+                admission_id: externalStudent.admission_id,
+                application_id: externalStudent.application_id,
+                semester_id: externalStudent.semester_id,
+                section_id: externalStudent.section_id,
+                academic_year_id: externalStudent.academic_year_id,
+                entry_type: externalStudent.entry_type,
+                last_school: externalStudent.last_school,
+                board_of_study: externalStudent.board_of_study,
+                tenth_marks: externalStudent.tenth_marks,
+                twelfth_marks: externalStudent.twelfth_marks,
+                // Address information
                 address: {
                   street: externalStudent.permanent_address_street || '',
+                  taluk: externalStudent.permanent_address_taluk || '',
                   district: externalStudent.permanent_address_district || '',
                   state: externalStudent.permanent_address_state || '',
                   pinCode: externalStudent.permanent_address_pin_code || ''
                 },
+                // Transport related
+                bus_required: externalStudent.bus_required,
+                bus_route: externalStudent.bus_route,
+                bus_pickup_location: externalStudent.bus_pickup_location,
+                // Other details
+                accommodation_type: externalStudent.accommodation_type,
+                hostel_type: externalStudent.hostel_type,
+                student_photo_url: externalStudent.student_photo_url,
                 is_profile_complete: externalStudent.is_profile_complete,
+                status: externalStudent.status,
                 external_id: externalStudent.id,
                 student_transport_profiles: [],
                 _isTransportUser: false,
@@ -2326,10 +2555,45 @@ const StudentsPage = () => {
                           student._enrollmentStatus === 'available' || // Available students don't have payment status
                           (transportProfile && transportProfile.payment_status === paymentFilter);
     
-    return matchesSearch && matchesStatus && matchesPayment;
+    // Apply new comprehensive filters
+    const studentDepartment = student.department?.department_name || student.department_name || '';
+    const matchesDepartment = departmentFilter === 'all' || studentDepartment === departmentFilter;
+    
+    const studentRouteId = transportProfile?.allocated_route_id || student.allocated_route_id || '';
+    const matchesRoute = routeFilter === 'all' || 
+                        (routeFilter === 'no_route' && !studentRouteId) ||
+                        studentRouteId === routeFilter;
+    
+    // Academic year filtering - determine student's academic year and compare
+    const studentAcademicYear = getStudentAcademicYear(student);
+    const matchesAcademicYear = academicYearFilter === 'all' || 
+                               studentAcademicYear === academicYearFilter;
+    
+    const studentSemester = student.semester || '';
+    const matchesSemester = semesterFilter === 'all' || 
+                           studentSemester.toString() === semesterFilter;
+    
+    const studentGender = student.gender || '';
+    const matchesGender = genderFilter === 'all' || studentGender.toLowerCase() === genderFilter.toLowerCase();
+    
+    return matchesSearch && matchesStatus && matchesPayment && 
+           matchesDepartment && matchesRoute && matchesAcademicYear && 
+           matchesSemester && matchesGender;
   });
 
   const canAddStudent = user && ['super_admin', 'data_entry'].includes(user.role);
+
+  // Pagination calculations
+  const totalFilteredStudents = filteredStudents.length;
+  const totalPages = Math.ceil(totalFilteredStudents / studentsPerPage);
+  const startIndex = (currentPage - 1) * studentsPerPage;
+  const endIndex = startIndex + studentsPerPage;
+  const currentStudents = filteredStudents.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, paymentFilter, enrollmentFilter, departmentFilter, routeFilter, academicYearFilter, semesterFilter, genderFilter]);
 
   // Stats calculations
   const totalStudents = students.length;
@@ -2411,9 +2675,15 @@ const StudentsPage = () => {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+      {/* Enhanced Filters */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Filter className="w-5 h-5" />
+          Student Filters
+        </h3>
+        
+        {/* Search Row */}
+        <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -2421,51 +2691,189 @@ const StudentsPage = () => {
               placeholder="Search by name, email, roll number, department, mobile..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10"
+              className="input pl-10 w-full"
             />
           </div>
-          <select
-            value={enrollmentFilter}
-            onChange={(e) => setEnrollmentFilter(e.target.value)}
-            className="input"
-          >
-            <option value="all">All Students</option>
-            <option value="enrolled">Enrolled in Transport</option>
-            <option value="available">Available for Enrollment</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="input"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active Transport</option>
-            <option value="inactive">Inactive Transport</option>
-            <option value="suspended">Suspended</option>
-            <option value="no_transport">No Transport</option>
-          </select>
+        </div>
+
+        {/* Filter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-4">
+          {/* Enrollment Status */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Enrollment</label>
+            <select
+              value={enrollmentFilter}
+              onChange={(e) => setEnrollmentFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Students</option>
+              <option value="enrolled">Enrolled</option>
+              <option value="available">Available</option>
+            </select>
+          </div>
+
+          {/* Department */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Department</label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Departments</option>
+              {uniqueDepartments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Route */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Route</label>
+            <select
+              value={routeFilter}
+              onChange={(e) => setRouteFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Routes</option>
+              <option value="no_route">No Route</option>
+              {uniqueRoutes.map(route => (
+                <option key={route.id} value={route.id}>
+                  {route.route_number} - {route.route_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Academic Year */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Academic Year</label>
+            <select
+              value={academicYearFilter}
+              onChange={(e) => setAcademicYearFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Years</option>
+              {uniqueAcademicYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Semester */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Semester</label>
+            <select
+              value={semesterFilter}
+              onChange={(e) => setSemesterFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Semesters</option>
+              {uniqueSemesters.map(sem => (
+                <option key={sem} value={sem.toString()}>Semester {sem}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Gender</label>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Transport Specific Filters (shown only when needed) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Transport Status */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Transport Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+              <option value="no_transport">No Transport</option>
+            </select>
+          </div>
+
+          {/* Payment Status */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Payment Status</label>
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="input"
+              className="input text-sm"
             >
-            <option value="all">All Payments</option>
+              <option value="all">All Payments</option>
               <option value="current">Current</option>
               <option value="overdue">Overdue</option>
               <option value="suspended">Suspended</option>
             </select>
-          <button
-            onClick={() => toast('Export functionality coming soon')}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setEnrollmentFilter('all');
+                setDepartmentFilter('all');
+                setRouteFilter('all');
+                setAcademicYearFilter('all');
+                setSemesterFilter('all');
+                setGenderFilter('all');
+                setStatusFilter('all');
+                setPaymentFilter('all');
+                toast.success('Filters cleared');
+              }}
+              className="btn-secondary text-sm flex items-center space-x-1"
+            >
+              <X className="w-4 h-4" />
+              <span>Clear</span>
+            </button>
+            <button
+              onClick={() => toast('Export functionality coming soon')}
+              className="btn-secondary text-sm flex items-center space-x-1"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Pagination Info */}
+      {!loading && totalFilteredStudents > 0 && (
+        <div className="flex justify-between items-center mb-4">
+          <div className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, totalFilteredStudents)} of {totalFilteredStudents} students
+            {totalFilteredStudents !== totalStudents && (
+              <span className="text-blue-600 ml-1">
+                (filtered from {totalStudents} total)
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredStudents.map((student) => (
+        {currentStudents.map((student) => (
           <StudentCard
             key={student.id}
             student={student}
@@ -2477,32 +2885,121 @@ const StudentsPage = () => {
         ))}
       </div>
 
-      {filteredStudents.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all'
-              ? 'No students found' 
-              : 'No students enrolled yet'
-            }
-          </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all'
-              ? 'Try adjusting your search or filters to find what you\'re looking for.' 
-              : 'Get started by adding student records to the transportation system. Students can then be assigned to routes and manage their transport needs.'
-            }
-          </p>
-          {canAddStudent && !searchTerm && statusFilter === 'all' && (
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Page Navigation */}
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => toast('Add student functionality coming soon')}
-              className="btn-primary flex items-center space-x-2 mx-auto"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="w-4 h-4" />
-              <span>Add Your First Student</span>
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center space-x-1">
+              {(() => {
+                const pages = [];
+                const maxVisiblePages = 5;
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                
+                if (endPage - startPage < maxVisiblePages - 1) {
+                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        currentPage === i
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+                return pages;
+              })()}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Last
+            </button>
+          </div>
+
+          {/* Jump to Page */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Go to page:</span>
+            <input
+              type="number"
+              min="1"
+              max={totalPages}
+              value={currentPage}
+              onChange={(e) => {
+                const page = parseInt(e.target.value);
+                if (page >= 1 && page <= totalPages) {
+                  setCurrentPage(page);
+                }
+              }}
+              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <span className="text-sm text-gray-600">of {totalPages}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {currentStudents.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-500 mb-4">
+            {totalFilteredStudents === 0 ? 'No students found matching your filters.' : 'No students on this page.'}
+          </div>
+          {totalFilteredStudents === 0 && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setEnrollmentFilter('all');
+                setDepartmentFilter('all');
+                setRouteFilter('all');
+                setAcademicYearFilter('all');
+                setSemesterFilter('all');
+                setGenderFilter('all');
+                setStatusFilter('all');
+                setPaymentFilter('all');
+              }}
+              className="btn-secondary"
+            >
+              Clear all filters
             </button>
           )}
         </div>
       )}
+
 
       <AnimatePresence>
         <AddStudentModal

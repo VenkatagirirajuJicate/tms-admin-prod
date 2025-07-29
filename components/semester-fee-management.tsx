@@ -83,22 +83,31 @@ const SemesterFeeManagement = () => {
     const month = now.getMonth() + 1; // 0-indexed
     const year = now.getFullYear();
     
-    if (month >= 6 && month <= 11) {
-      // First semester (June-November)
+    // 3-TERM SYSTEM UPDATE
+    if (month >= 6 && month <= 9) {
+      // Term 1 (June-September)
       return {
         academicYear: `${year}-${String(year + 1).slice(-2)}`,
         semester: '1',
         startDate: `${year}-06-01`,
-        endDate: `${year}-11-30`
+        endDate: `${year}-09-30`
       };
-    } else {
-      // Second semester (December-May)
-      const academicStartYear = month >= 12 ? year : year - 1;
+    } else if (month >= 10 || month <= 1) {
+      // Term 2 (October-January)
+      const academicStartYear = month >= 10 ? year : year - 1;
       return {
         academicYear: `${academicStartYear}-${String(academicStartYear + 1).slice(-2)}`,
         semester: '2',
-        startDate: `${academicStartYear}-12-01`,
-        endDate: `${academicStartYear + 1}-05-31`
+        startDate: `${academicStartYear}-10-01`,
+        endDate: `${academicStartYear + 1}-01-31`
+      };
+    } else {
+      // Term 3 (February-May)
+      return {
+        academicYear: `${year - 1}-${String(year).slice(-2)}`,
+        semester: '3',
+        startDate: `${year}-02-01`,
+        endDate: `${year}-05-31`
       };
     }
   };
@@ -427,8 +436,8 @@ const SemesterFeeManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Semester Fee Management</h1>
-          <p className="text-gray-600">Set and manage semester fees for all routes and stops</p>
+          <h1 className="text-2xl font-bold text-gray-900">3-Term Fee Management</h1>
+          <p className="text-gray-600">Set and manage term-wise fees for all routes and stops (3-Term Academic System)</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
           <button
@@ -536,15 +545,17 @@ const SemesterFeeManagement = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Term/Payment Type</label>
             <select
               value={filters.semester}
               onChange={(e) => setFilters(prev => ({ ...prev, semester: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Semesters</option>
-              <option value="1">Semester 1</option>
-              <option value="2">Semester 2</option>
+              <option value="all">All Terms</option>
+              <option value="1">Term 1 (Jun-Sep)</option>
+              <option value="2">Term 2 (Oct-Jan)</option>
+              <option value="3">Term 3 (Feb-May)</option>
+              <option value="full_year">Full Year Payment</option>
             </select>
           </div>
           <div>
@@ -565,7 +576,7 @@ const SemesterFeeManagement = () => {
       {/* Fees Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Semester Fees ({filteredFees.length})</h3>
+          <h3 className="text-lg font-medium text-gray-900">Term Fees ({filteredFees.length})</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -575,7 +586,7 @@ const SemesterFeeManagement = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stop</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validity</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -607,8 +618,16 @@ const SemesterFeeManagement = () => {
                     {fee.academic_year}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                      Semester {fee.semester}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      fee.semester === '1' ? 'bg-white text-gray-800 border border-gray-300' :
+                      fee.semester === '2' ? 'bg-blue-100 text-blue-800' :
+                      fee.semester === '3' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {fee.semester === '1' ? 'Term 1 (Jun-Sep)' :
+                       fee.semester === '2' ? 'Term 2 (Oct-Jan)' :
+                       fee.semester === '3' ? 'Term 3 (Feb-May)' :
+                       'Full Year'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -717,14 +736,15 @@ const SemesterFeeManagement = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Semester *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Term *</label>
                       <select
                         value={formData.semester}
                         onChange={(e) => setFormData(prev => ({ ...prev, semester: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="1">Semester 1</option>
-                        <option value="2">Semester 2</option>
+                                                  <option value="1">Term 1 (Jun-Sep)</option>
+                          <option value="2">Term 2 (Oct-Jan)</option>
+                          <option value="3">Term 3 (Feb-May)</option>
                       </select>
                     </div>
                   </div>
@@ -877,7 +897,7 @@ const SemesterFeeManagement = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Semester Fee</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Term Fee</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
                       <input

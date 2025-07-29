@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, Loader2, User, Phone, FileText } from 'lucide-react';
-import { DatabaseService } from '@/lib/database';
+
 import toast from 'react-hot-toast';
 
 interface EditDriverModalProps {
@@ -115,7 +115,26 @@ const EditDriverModal = ({ isOpen, onClose, onSuccess, driver }: EditDriverModal
         totalTrips: parseInt(formData.totalTrips)
       };
       
-      await DatabaseService.updateDriver(driver.id, driverData);
+      console.log('Edit Form Data:', formData);
+      console.log('Edit Driver Data to submit:', driverData);
+      
+      // Use API endpoint instead of DatabaseService directly
+      const response = await fetch('/api/admin/drivers', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          driverId: driver.id,
+          driverData: driverData
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update driver');
+      }
       
       toast.success('Driver updated successfully!');
       

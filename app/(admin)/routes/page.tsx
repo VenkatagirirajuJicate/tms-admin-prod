@@ -31,6 +31,7 @@ import AddRouteModal from '@/components/add-route-modal';
 import EditRouteModal from '@/components/edit-route-modal';
 import RouteDetailsModal from '@/components/route-details-modal';
 import LiveTrackingMap from '@/components/live-tracking-map';
+import LiveGPSTrackingModal from '@/components/live-gps-tracking-modal';
 import UniversalStatCard from '@/components/universal-stat-card';
 import { createRouteStats, safeNumber, safePercentage } from '@/lib/stat-utils';
 

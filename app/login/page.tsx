@@ -150,10 +150,10 @@ const LoginPage = () => {
         >
           <div className="text-center lg:text-left">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              TMS Admin Portal
+              MYJKKN TMS Admin
             </h1>
             <p className="text-xl text-gray-600">
-              Transportation Management System
+              JKKN College Transport Administration
             </p>
           </div>
 
