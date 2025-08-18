@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -73,7 +73,7 @@ export default function RealTimeNotifications({ userId, userType, className }: N
   const lastFetchRef = useRef<string>(new Date().toISOString());
 
   // Simulated notification sounds
-  const playNotificationSound = (priority: string) => {
+  const playNotificationSound = useCallback((priority: string) => {
     if (!settings.soundEnabled) return;
     
     // Create audio context for different notification sounds
@@ -108,9 +108,9 @@ export default function RealTimeNotifications({ userId, userType, className }: N
         }
       }, index * 200);
     });
-  };
+  }, [settings.soundEnabled]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/${userType === 'admin' ? 'admin' : 'student'}/notifications?userId=${userId}&since=${lastFetchRef.current}`
@@ -152,7 +152,7 @@ export default function RealTimeNotifications({ userId, userType, className }: N
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  };
+  }, [userId, userType, notifications, playNotificationSound]);
 
   const markAsRead = async (notificationId: string) => {
     try {

@@ -31,8 +31,10 @@ import {
   GraduationCap,
   Home,
   Heart,
-  Route
+  Route,
+  Navigation
 } from 'lucide-react';
+import StudentLocationDisplay from '@/components/student-location-display';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
 import UniversalStatCard from '@/components/universal-stat-card';
@@ -42,6 +44,9 @@ import { createStudentStats, safeNumber } from '@/lib/stat-utils';
 const ViewStudentModal = ({ isOpen, onClose, student }: any) => {
   const [routeData, setRouteData] = useState<any>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+  const [showLocationTracking, setShowLocationTracking] = useState(false);
+
+
 
   // Fetch route data when student has transport assignment
   useEffect(() => {
@@ -76,6 +81,7 @@ const ViewStudentModal = ({ isOpen, onClose, student }: any) => {
     } else {
       setRouteData(null);
       setRouteLoading(false);
+      setShowLocationTracking(false);
     }
   }, [isOpen, student]);
 
@@ -467,6 +473,32 @@ const ViewStudentModal = ({ isOpen, onClose, student }: any) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Location Tracking Section */}
+          <div className="mt-6">
+            
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Location Tracking</h3>
+              </div>
+              <button
+                onClick={() => setShowLocationTracking(!showLocationTracking)}
+                className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center space-x-2"
+              >
+                <Navigation className="w-4 h-4" />
+                <span>Live Track</span>
+              </button>
+            </div>
+            
+            {showLocationTracking && (
+              <StudentLocationDisplay
+                studentId={student?.external_id || student?.id}
+                studentName={student?.student_name}
+                isVisible={isOpen}
+              />
+            )}
           </div>
         </div>
 
@@ -2035,6 +2067,14 @@ const StudentsPage = () => {
         external_id: localStudent.external_id,
         created_at: localStudent.created_at,
         updated_at: localStudent.updated_at,
+        // Location tracking fields
+        location_sharing_enabled: localStudent.location_sharing_enabled,
+        location_enabled: localStudent.location_enabled,
+        current_latitude: localStudent.current_latitude,
+        current_longitude: localStudent.current_longitude,
+        location_accuracy: localStudent.location_accuracy,
+        location_timestamp: localStudent.location_timestamp,
+        last_location_update: localStudent.last_location_update,
         _isTransportUser: true,
         _enrollmentStatus: 'enrolled'
       }));

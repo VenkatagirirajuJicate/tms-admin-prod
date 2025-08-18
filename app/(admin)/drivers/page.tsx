@@ -32,17 +32,21 @@ import {
   UserCheck,
   TrendingUp,
   Activity,
-  Loader2
+  Loader2,
+  Navigation,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
 import AddDriverModal from '@/components/add-driver-modal';
 import EditDriverModal from '@/components/edit-driver-modal';
 import DriverDetailsModal from '@/components/driver-details-modal';
+import DriverLocationModal from '@/components/driver-location-modal';
 import UniversalStatCard from '@/components/universal-stat-card';
 import { createDriverStats, safeNumber } from '@/lib/stat-utils';
 
-const DriverCard = ({ driver, onEdit, onDelete, onView, userRole }: any) => {
+const DriverCard = ({ driver, onEdit, onDelete, onView, onViewLocation, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
   const canDelete = userRole === 'super_admin';
   const canView = true;
@@ -96,46 +100,56 @@ const DriverCard = ({ driver, onEdit, onDelete, onView, userRole }: any) => {
           <Activity className="w-4 h-4" />
           <span>{driver.total_trips || 0} total trips</span>
         </div>
+        {/* Location Status */}
+        {driver.location_sharing_enabled && (
+          <div className="flex items-center space-x-2 text-sm text-green-600">
+            <Wifi className="w-4 h-4" />
+            <span>Location Sharing Active</span>
+          </div>
+        )}
       </div>
 
-      {driver.rating && driver.rating > 0 && (
-        <div className="border-t border-gray-100 pt-4 mb-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">RATING</span>
-            <div className="flex items-center space-x-1">
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <span className="text-sm font-medium text-gray-900">{driver.rating}</span>
-            </div>
-          </div>
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex space-x-2">
+          {canView && (
+            <button
+              onClick={() => onView(driver)}
+              className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              <span>View</span>
+            </button>
+          )}
+          {driver.location_sharing_enabled && (
+            <button
+              onClick={() => onViewLocation(driver)}
+              className="flex items-center space-x-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            >
+              <Navigation className="w-4 h-4" />
+              <span>Location</span>
+            </button>
+          )}
         </div>
-      )}
-
-      <div className="flex space-x-2">
-        {canView && (
-          <button
-            onClick={() => onView(driver)}
-            className="flex-1 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
-          >
-            <Eye className="w-4 h-4" />
-            <span>View Details</span>
-          </button>
-        )}
-        {canEdit && (
-          <button
-            onClick={() => onEdit(driver)}
-            className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <Edit className="w-4 h-4 text-gray-600" />
-          </button>
-        )}
-        {canDelete && (
-          <button
-            onClick={() => onDelete(driver)}
-            className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="w-4 h-4 text-gray-600" />
-          </button>
-        )}
+        <div className="flex space-x-2">
+          {canEdit && (
+            <button
+              onClick={() => onEdit(driver)}
+              className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Edit</span>
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => onDelete(driver)}
+              className="flex items-center space-x-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -152,6 +166,7 @@ const DriversPage = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<any>(null);
   const [viewingDriver, setViewingDriver] = useState<any>(null);
+  const [viewingLocationDriver, setViewingLocationDriver] = useState<any>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('adminUser');
@@ -167,37 +182,19 @@ const DriversPage = () => {
   const fetchDrivers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching drivers...');
-      
-      // Fetch drivers using API route
       const response = await fetch('/api/admin/drivers');
       const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch drivers');
-      }
-      
-      const driversData = result.data || [];
-      console.log('Drivers data received:', driversData);
-      
-      setDrivers(Array.isArray(driversData) ? driversData : []);
-      
-      if (!driversData || driversData.length === 0) {
-        console.log('No drivers found in database - this is normal for a fresh installation');
+
+      if (result.success) {
+        setDrivers(result.data || []);
       } else {
-        console.log(`Successfully loaded ${driversData.length} drivers`);
+        console.error('Failed to fetch drivers:', result.error);
+        toast.error('Failed to fetch drivers');
+        setDrivers([]);
       }
-      
     } catch (error) {
-      console.error('Error fetching drivers:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      });
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to load drivers: ${errorMessage}`);
-      
+      console.error('Error fetching drivers:', error);
+      toast.error('Failed to fetch drivers');
       setDrivers([]);
     } finally {
       setLoading(false);
@@ -216,6 +213,10 @@ const DriversPage = () => {
         toast.error('Failed to delete driver');
       }
     }
+  };
+
+  const handleViewLocation = (driver: any) => {
+    setViewingLocationDriver(driver);
   };
 
   const filteredDrivers = drivers.filter(driver => {
@@ -338,6 +339,7 @@ const DriversPage = () => {
               setViewingDriver(d);
               setIsDetailsModalOpen(true);
             }}
+            onViewLocation={handleViewLocation}
             userRole={user?.role}
           />
         ))}
@@ -385,12 +387,21 @@ const DriversPage = () => {
 
       {/* Driver Details Modal */}
       <DriverDetailsModal
-        isOpen={isDetailsModalOpen}
+        isOpen={isDetailsModalOpen && !!viewingDriver}
         onClose={() => {
           setIsDetailsModalOpen(false);
           setViewingDriver(null);
         }}
         driver={viewingDriver}
+      />
+
+      {/* Driver Location Modal */}
+      <DriverLocationModal
+        isOpen={!!viewingLocationDriver}
+        onClose={() => {
+          setViewingLocationDriver(null);
+        }}
+        driver={viewingLocationDriver}
       />
     </div>
   );

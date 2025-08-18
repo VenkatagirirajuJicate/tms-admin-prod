@@ -69,6 +69,15 @@ export async function GET() {
       assigned_route_id: driver.assigned_route_id,
       created_at: driver.created_at,
       updated_at: driver.updated_at,
+      // Location tracking fields
+      location_sharing_enabled: driver.location_sharing_enabled || false,
+      location_enabled: driver.location_enabled || false,
+      location_tracking_status: driver.location_tracking_status || 'inactive',
+      current_latitude: driver.current_latitude,
+      current_longitude: driver.current_longitude,
+      location_accuracy: driver.location_accuracy,
+      location_timestamp: driver.location_timestamp,
+      last_location_update: driver.last_location_update,
       // Default relationship fields
       routes: null,
       vehicles: null

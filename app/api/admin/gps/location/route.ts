@@ -170,6 +170,13 @@ export async function GET(request: NextRequest) {
         route_name,
         status,
         vehicle_id,
+        current_latitude,
+        current_longitude,
+        gps_speed,
+        gps_heading,
+        gps_accuracy,
+        last_gps_update,
+        live_tracking_enabled,
         vehicles!fk_routes_vehicle (
           id,
           registration_number,
@@ -187,8 +194,7 @@ export async function GET(request: NextRequest) {
             last_heartbeat
           )
         )
-      `)
-      .not('vehicle_id', 'is', null);
+      `);
 
     if (routeId) {
       query = query.eq('id', routeId);
@@ -204,11 +210,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: routes || [],
-      count: routes?.length || 0
+    const mapped = (routes || []).map((r: any) => {
+      const vehicle = r.vehicles?.[0];
+      const current = vehicle?.current_latitude && vehicle?.current_longitude
+        ? {
+            latitude: vehicle.current_latitude,
+            longitude: vehicle.current_longitude,
+            accuracy: vehicle.gps_accuracy,
+            speed: vehicle.gps_speed,
+            heading: vehicle.gps_heading,
+            lastUpdate: vehicle.last_gps_update
+          }
+        : (r.current_latitude && r.current_longitude ? {
+            latitude: r.current_latitude,
+            longitude: r.current_longitude,
+            accuracy: r.gps_accuracy,
+            speed: r.gps_speed,
+            heading: r.gps_heading,
+            lastUpdate: r.last_gps_update
+          } : null);
+      return { ...r, current_location: current };
     });
+
+    return NextResponse.json({ success: true, data: mapped, count: mapped.length });
 
   } catch (error) {
     console.error('GPS location fetch error:', error);

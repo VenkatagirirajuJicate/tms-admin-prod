@@ -54,15 +54,43 @@ const DriverDetailsModal = ({ isOpen, onClose, driver }: DriverDetailsModalProps
       let routeInfo = driver.routes;
       let vehicleInfo = driver.vehicles;
 
-      // If we have assigned_route_id but no route object, fetch route details
-      if (driver.assigned_route_id && !driver.routes) {
+      // Check for route assignments in multiple sources
+      if (!driver.routes) {
         try {
+          // First, check if driver is assigned to any route in the routes table
           const routesResponse = await fetch('/api/admin/routes');
           const routesResult = await routesResponse.json();
           if (routesResult.success) {
             const allRoutes = routesResult.data || [];
-            routeInfo = allRoutes.find((r: any) => r.id === driver.assigned_route_id);
-            console.log('Fetched route info:', routeInfo);
+            
+            // Priority 1: Check routes.driver_id (direct assignment) - This should be the primary source
+            let assignedRoute = allRoutes.find((r: any) => r.driver_id === driver.id);
+            
+            // Priority 2: Check drivers.assigned_route_id (fallback)
+            if (!assignedRoute && driver.assigned_route_id) {
+              assignedRoute = allRoutes.find((r: any) => r.id === driver.assigned_route_id);
+            }
+            
+            // Priority 3: Check driver_route_assignments table (additional assignments)
+            if (!assignedRoute) {
+              const assignmentsResponse = await fetch(`/api/admin/drivers/${driver.id}/route-assignments`);
+              if (assignmentsResponse.ok) {
+                const assignmentsResult = await assignmentsResponse.json();
+                if (assignmentsResult.success && assignmentsResult.assignments.length > 0) {
+                  const activeAssignment = assignmentsResult.assignments.find((a: any) => a.is_active);
+                  if (activeAssignment) {
+                    assignedRoute = allRoutes.find((r: any) => r.id === activeAssignment.route_id);
+                  }
+                }
+              }
+            }
+            
+            if (assignedRoute) {
+              routeInfo = assignedRoute;
+              console.log('Found assigned route:', routeInfo);
+            } else {
+              console.log('No route assignment found for driver');
+            }
           }
         } catch (error) {
           console.warn('Could not fetch route details:', error);

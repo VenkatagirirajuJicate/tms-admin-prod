@@ -100,6 +100,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       group: 'transport'
     },
     { 
+      name: 'Track All', 
+      href: '/track-all', 
+      icon: Bus, 
+      roles: ['super_admin', 'transport_admin'],
+      group: 'transport'
+    },
+    { 
       name: 'Routes', 
       href: '/routes', 
       icon: Route, 
