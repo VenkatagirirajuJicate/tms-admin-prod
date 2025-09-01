@@ -11,7 +11,7 @@ import {
   Navigation,
   Activity,
   Star,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   User,
   Truck,
   DollarSign,

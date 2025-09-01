@@ -21,7 +21,7 @@ import {
   Heart,
   Gauge,
   CreditCard,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   UserCheck,
   Phone,
   Mail,

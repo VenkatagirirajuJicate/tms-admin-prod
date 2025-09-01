@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Route,
+  MapPin,
   Users,
   Car,
   Calendar,
@@ -109,7 +109,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     { 
       name: 'Routes', 
       href: '/routes', 
-      icon: Route, 
+      icon: MapPin, 
       roles: ['super_admin', 'transport_admin'],
       group: 'transport'
     },

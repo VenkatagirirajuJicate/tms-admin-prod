@@ -13,7 +13,7 @@ import {
   Clock,
   User,
   Users,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Star,
   ThumbsUp,
   MessageSquare,

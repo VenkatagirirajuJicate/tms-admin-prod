@@ -4,7 +4,7 @@
 
 Your student API integration is configured with the endpoint you provided:
 
-- **URL**: `https://myadmin.jkkn.ac.in/api/api-management/students`
+- **URL**: `https://my.jkkn.ac.in/api/api-management/students`
 - **Current API Key**: `jk_21372a6d0f4ca05d02139a0fb714a2e5_mcejx5qz`
 
 ## If You Get "API authentication failed" Error
@@ -95,7 +95,7 @@ Your integration uses these exact endpoints as provided:
 **Search Students:**
 
 ```bash
-GET https://myadmin.jkkn.ac.in/api/api-management/students?search=EMAIL&page=1&limit=10
+GET https://my.jkkn.ac.in/api/api-management/students?search=EMAIL&page=1&limit=10
 Headers:
 - Authorization: Bearer YOUR_API_KEY
 - Accept: application/json
@@ -105,7 +105,7 @@ Headers:
 **Get Student Details:**
 
 ```bash
-GET https://myadmin.jkkn.ac.in/api/api-management/students/STUDENT_ID
+GET https://my.jkkn.ac.in/api/api-management/students/STUDENT_ID
 Headers:
 - Authorization: Bearer YOUR_API_KEY
 - Accept: application/json

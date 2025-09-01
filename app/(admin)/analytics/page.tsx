@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
-  Route,
+  MapPin,
   DollarSign,
   BarChart3,
   AlertTriangle,
@@ -25,7 +25,6 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
-  MapPin,
   Zap,
   Shield,
   Award,
@@ -493,7 +492,7 @@ const AnalyticsPage = () => {
       title: 'Route Efficiency',
       value: `${Math.round(analytics.routePerformance.reduce((sum, r) => sum + r.efficiency, 0) / analytics.routePerformance.length)}%`,
       change: { value: 5.7, direction: 'up' },
-      icon: Route,
+              icon: MapPin,
       color: 'purple',
       subtitle: `${analytics.routePerformance.length} active routes`,
       gradient: 'bg-gradient-to-br from-purple-500 to-violet-600'

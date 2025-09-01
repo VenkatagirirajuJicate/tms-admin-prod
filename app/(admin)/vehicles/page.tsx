@@ -17,7 +17,9 @@ import {
   Activity,
   Loader2,
   Navigation,
-  MapPin
+  MapPin,
+  Square,
+  CheckSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
@@ -27,8 +29,9 @@ import EditVehicleModal from '@/components/edit-vehicle-modal';
 import UniversalStatCard from '@/components/universal-stat-card';
 import { createVehicleStats, safeNumber } from '@/lib/stat-utils';
 import LiveGPSTrackingModal from '@/components/live-gps-tracking-modal';
+import BulkOperations, { useBulkOperations } from '@/components/ui/bulk-operations';
 
-const VehicleCard = ({ vehicle, onEdit, onDelete, onView, onTrack, userRole }: any) => {
+const VehicleCard = ({ vehicle, onEdit, onDelete, onView, onTrack, userRole, isSelected, onToggleSelect }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
   const canDelete = userRole === 'super_admin';
   const canView = true;
@@ -61,8 +64,27 @@ const VehicleCard = ({ vehicle, onEdit, onDelete, onView, onTrack, userRole }: a
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all"
+      className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-all ${
+        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+      }`}
     >
+      {/* Selection Checkbox */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={onToggleSelect}
+          className="p-1 rounded hover:bg-gray-100 transition-colors"
+        >
+          {isSelected ? (
+            <CheckSquare className="h-5 w-5 text-blue-600" />
+          ) : (
+            <Square className="h-5 w-5 text-gray-400" />
+          )}
+        </button>
+        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(vehicle.status)}`}>
+          {vehicle.status}
+        </span>
+      </div>
+
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -79,9 +101,6 @@ const VehicleCard = ({ vehicle, onEdit, onDelete, onView, onTrack, userRole }: a
             <p className="text-sm text-gray-600">{vehicle.model}</p>
           </div>
         </div>
-          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(vehicle.status)}`}>
-            {vehicle.status}
-          </span>
       </div>
 
       <div className="space-y-3 mb-4">
@@ -198,6 +217,9 @@ const VehiclesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [fuelFilter, setFuelFilter] = useState('all');
+  
+  // Bulk operations
+  const { selectedItems, handleSelectionChange, clearSelection, isSelected } = useBulkOperations();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -242,15 +264,62 @@ const VehiclesPage = () => {
   const handleDeleteVehicle = async (vehicle: any) => {
     if (confirm(`Are you sure you want to delete vehicle ${vehicle.registration_number}?`)) {
       try {
-        // In a real app, this would call the delete API
-        // await DatabaseService.deleteVehicle(vehicle.id);
-        toast.success(`Vehicle ${vehicle.registration_number} would be deleted`);
-        // For now, just remove from local state
-        setVehicles(vehicles.filter(v => v.id !== vehicle.id));
+        // Call the delete API
+        const response = await fetch(`/api/admin/vehicles/${vehicle.id}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete vehicle');
+        }
+
+        toast.success(result.message || `Vehicle ${vehicle.registration_number} deleted successfully`);
+        fetchVehicles(); // Refresh the list
+        clearSelection(); // Clear any selected items
       } catch (error) {
         toast.error('Failed to delete vehicle');
       }
     }
+  };
+
+  // Bulk delete functionality
+  const handleBulkDelete = async (selectedIds: string[]) => {
+    const promises = selectedIds.map(async (id) => {
+      const response = await fetch(`/api/admin/vehicles/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to delete vehicle');
+      }
+      
+      return response.json();
+    });
+
+    await Promise.all(promises);
+    fetchVehicles(); // Refresh the list
+  };
+
+  // Bulk export functionality
+  const handleBulkExport = (selectedIds: string[]) => {
+    const selectedVehicles = vehicles.filter(vehicle => selectedIds.includes(vehicle.id));
+    const csvContent = [
+      'Registration Number,Model,Capacity,Fuel Type,Status,Insurance Expiry,Fitness Expiry,Mileage',
+      ...selectedVehicles.map(vehicle => 
+        `${vehicle.registration_number},${vehicle.model},${vehicle.capacity},${vehicle.fuel_type},${vehicle.status},${vehicle.insurance_expiry || ''},${vehicle.fitness_expiry || ''},${vehicle.mileage || 0}`
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'vehicles_export.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleEditVehicle = (vehicle: any) => {
@@ -399,8 +468,15 @@ const VehiclesPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredVehicles.map((vehicle) => (
+      {/* Bulk Operations */}
+      <BulkOperations
+        items={filteredVehicles}
+        selectedItems={selectedItems}
+        onSelectionChange={handleSelectionChange}
+        onBulkDelete={user?.role === 'super_admin' ? handleBulkDelete : undefined}
+        onBulkExport={handleBulkExport}
+        itemTypeName="vehicles"
+        renderItem={(vehicle, isItemSelected, onToggle) => (
           <VehicleCard
             key={vehicle.id}
             vehicle={vehicle}
@@ -409,9 +485,11 @@ const VehiclesPage = () => {
             onView={handleViewVehicle}
             onTrack={handleTrackVehicle}
             userRole={user?.role}
+            isSelected={isItemSelected}
+            onToggleSelect={onToggle}
           />
-        ))}
-      </div>
+        )}
+      />
 
       {filteredVehicles.length === 0 && !loading && (
         <div className="text-center py-12">

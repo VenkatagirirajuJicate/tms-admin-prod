@@ -3,7 +3,7 @@
 ## Current Status ✅ CONNECTED TO REAL API
 
 The student fetching functionality is now integrated and connected to your real API at:
-**`https://myadmin.jkkn.ac.in/api/api-management/`**
+**`https://my.jkkn.ac.in/api/api-management/`**
 
 ## API Integration Files Created
 
@@ -15,7 +15,7 @@ The student fetching functionality is now integrated and connected to your real 
 
 The system is now connected to your real API:
 
-- **Base URL**: `https://myadmin.jkkn.ac.in/api/api-management/`
+- **Base URL**: `https://my.jkkn.ac.in/api/api-management/`
 - **API Key**: `jk_21372a6d0f4ca05d02139a0fb714a2e5_mcejx5qz`
 - **Endpoints Used**:
   - `GET /students?search={email}` - Search students by email
@@ -112,7 +112,7 @@ The integration expects the following response format:
 
 The student API integration is now **fully functional** and connected to your real database:
 
-✅ **API Connected**: `https://myadmin.jkkn.ac.in/api/api-management/`  
+✅ **API Connected**: `https://my.jkkn.ac.in/api/api-management/`  
 ✅ **Email Search**: Enter any real student email to fetch details  
 ✅ **Full Profile**: Displays complete student information  
 ✅ **Transport Integration**: Assign routes and manage transport  

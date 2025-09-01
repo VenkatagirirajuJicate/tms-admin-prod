@@ -31,7 +31,6 @@ import {
   GraduationCap,
   Home,
   Heart,
-  Route,
   Navigation
 } from 'lucide-react';
 import StudentLocationDisplay from '@/components/student-location-display';

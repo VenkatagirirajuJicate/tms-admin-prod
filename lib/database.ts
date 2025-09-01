@@ -1649,6 +1649,212 @@ export class DatabaseService {
     }
   }
 
+  // Delete driver from database
+  static async deleteDriver(driverId: string) {
+    try {
+      console.log('Deleting driver with ID:', driverId);
+
+      // First, check if driver exists
+      const { data: existingDriver, error: fetchError } = await supabase
+        .from('drivers')
+        .select('id, name, license_number')
+        .eq('id', driverId)
+        .single();
+
+      if (fetchError || !existingDriver) {
+        throw new Error('Driver not found');
+      }
+
+      // Check for dependencies before deletion
+      const dependencyChecks = await Promise.all([
+        // Check for route assignments
+        supabase.from('routes').select('id, route_number').eq('driver_id', driverId).limit(5),
+        // Check for active trips/bookings
+        supabase.from('driver_route_assignments').select('id').eq('driver_id', driverId).eq('is_active', true).limit(1),
+        // Check for performance records
+        supabase.from('driver_performance').select('id').eq('driver_id', driverId).limit(1).maybeSingle()
+      ]);
+
+      const [routesCheck, assignmentsCheck, performanceCheck] = dependencyChecks;
+
+      // Build dependency warnings
+      const dependencies = [];
+      if (routesCheck.data && routesCheck.data.length > 0) {
+        const routeNumbers = routesCheck.data.map(r => r.route_number).join(', ');
+        dependencies.push(`assigned to routes: ${routeNumbers}`);
+      }
+      if (assignmentsCheck.data && assignmentsCheck.data.length > 0) {
+        dependencies.push('has active route assignments');
+      }
+      if (performanceCheck.data) {
+        dependencies.push('has performance records');
+      }
+
+      if (dependencies.length > 0) {
+        throw new Error(`Cannot delete driver: driver is ${dependencies.join(', ')}. Please reassign/remove these first.`);
+      }
+
+      // If no dependencies, proceed with deletion
+      const { error: deleteError } = await supabase
+        .from('drivers')
+        .delete()
+        .eq('id', driverId);
+
+      if (deleteError) {
+        console.error('Error deleting driver:', deleteError);
+        throw new Error(`Failed to delete driver: ${deleteError.message}`);
+      }
+
+      console.log(`Successfully deleted driver ${existingDriver.name}`);
+      return { 
+        success: true, 
+        message: `Driver ${existingDriver.name} (License: ${existingDriver.license_number}) has been deleted successfully.`
+      };
+
+    } catch (error) {
+      console.error('Error in deleteDriver:', error);
+      throw error;
+    }
+  }
+
+  // Update vehicle information
+  static async updateVehicle(vehicleId: string, vehicleData: any) {
+    try {
+      console.log('Updating vehicle with ID:', vehicleId, vehicleData);
+      
+      // First, check if vehicle exists
+      const { data: existingVehicle, error: fetchError } = await supabase
+        .from('vehicles')
+        .select('id, registration_number')
+        .eq('id', vehicleId)
+        .single();
+
+      if (fetchError || !existingVehicle) {
+        throw new Error('Vehicle not found');
+      }
+
+      // Check if registration number is being updated to a duplicate
+      if (vehicleData.registrationNumber && vehicleData.registrationNumber !== existingVehicle.registration_number) {
+        const { data: duplicateVehicle } = await supabase
+          .from('vehicles')
+          .select('id')
+          .eq('registration_number', vehicleData.registrationNumber)
+          .neq('id', vehicleId)
+          .single();
+
+        if (duplicateVehicle) {
+          throw new Error('Vehicle with this registration number already exists');
+        }
+      }
+
+      // Prepare update data
+      const updateData = {
+        registration_number: vehicleData.registrationNumber,
+        model: vehicleData.model,
+        capacity: parseInt(vehicleData.capacity),
+        fuel_type: vehicleData.fuelType || 'diesel',
+        status: vehicleData.status || 'active',
+        insurance_expiry: vehicleData.insuranceExpiry || null,
+        fitness_expiry: vehicleData.fitnessExpiry || null,
+        next_maintenance: vehicleData.nextMaintenance || null,
+        mileage: vehicleData.mileage ? parseFloat(vehicleData.mileage) : 0,
+        purchase_date: vehicleData.purchaseDate || null,
+        chassis_number: vehicleData.chassisNumber || null,
+        engine_number: vehicleData.engineNumber || null,
+        gps_device_id: vehicleData.gpsDeviceId || null,
+        live_tracking_enabled: vehicleData.liveTrackingEnabled || false,
+        updated_at: new Date().toISOString()
+      };
+
+      // Update vehicle
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(updateData)
+        .eq('id', vehicleId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating vehicle:', error);
+        throw new Error(`Failed to update vehicle: ${error.message}`);
+      }
+
+      console.log('Vehicle updated successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Exception updating vehicle:', error);
+      throw error;
+    }
+  }
+
+  // Delete vehicle from database
+  static async deleteVehicle(vehicleId: string) {
+    try {
+      console.log('Deleting vehicle with ID:', vehicleId);
+
+      // First, check if vehicle exists
+      const { data: existingVehicle, error: fetchError } = await supabase
+        .from('vehicles')
+        .select('id, registration_number, model')
+        .eq('id', vehicleId)
+        .single();
+
+      if (fetchError || !existingVehicle) {
+        throw new Error('Vehicle not found');
+      }
+
+      // Check for dependencies before deletion
+      const dependencyChecks = await Promise.all([
+        // Check for route assignments
+        supabase.from('routes').select('id, route_number').eq('vehicle_id', vehicleId).limit(5),
+        // Check for active GPS tracking
+        supabase.from('gps_devices').select('id').eq('vehicle_id', vehicleId).limit(1),
+        // Check for maintenance records
+        supabase.from('vehicle_maintenance').select('id').eq('vehicle_id', vehicleId).limit(1).maybeSingle()
+      ]);
+
+      const [routesCheck, gpsCheck, maintenanceCheck] = dependencyChecks;
+
+      // Build dependency warnings
+      const dependencies = [];
+      if (routesCheck.data && routesCheck.data.length > 0) {
+        const routeNumbers = routesCheck.data.map(r => r.route_number).join(', ');
+        dependencies.push(`assigned to routes: ${routeNumbers}`);
+      }
+      if (gpsCheck.data && gpsCheck.data.length > 0) {
+        dependencies.push('has GPS device assigned');
+      }
+      if (maintenanceCheck.data) {
+        dependencies.push('has maintenance records');
+      }
+
+      if (dependencies.length > 0) {
+        throw new Error(`Cannot delete vehicle: it is ${dependencies.join(', ')}. Please reassign/remove these first.`);
+      }
+
+      // If no dependencies, proceed with deletion
+      const { error: deleteError } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicleId);
+
+      if (deleteError) {
+        console.error('Error deleting vehicle:', deleteError);
+        throw new Error(`Failed to delete vehicle: ${deleteError.message}`);
+      }
+
+      console.log(`Successfully deleted vehicle ${existingVehicle.registration_number}`);
+      return { 
+        success: true, 
+        message: `Vehicle ${existingVehicle.registration_number} (${existingVehicle.model}) has been deleted successfully.`
+      };
+
+    } catch (error) {
+      console.error('Error in deleteVehicle:', error);
+      throw error;
+    }
+  }
+
   // Add new vehicle to database
   static async addVehicle(vehicleData: any) {
     try {

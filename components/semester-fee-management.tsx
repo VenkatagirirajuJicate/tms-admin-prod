@@ -10,7 +10,7 @@ import {
   DollarSign,
   Calendar,
   MapPin,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Save,
   X,
   Download,

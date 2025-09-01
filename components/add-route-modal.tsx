@@ -5,6 +5,11 @@ import { motion } from 'framer-motion';
 import { X, Plus, MapPin, Clock, Trash2, ArrowUp, ArrowDown, Save, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
+import { validateRouteData, validateGPSCoordinates, validateTimeFormat } from '@/lib/validation';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('./ui/map-picker'), { ssr: false });
+import DragDropStops, { DragDropStop } from './ui/drag-drop-stops';
 
 interface Stop {
   id?: string;
@@ -63,11 +68,58 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
     assignment: false
   });
 
+  // Map picker state
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [mapPickerType, setMapPickerType] = useState<'start' | 'end' | 'stop'>('start');
+  const [mapPickerTitle, setMapPickerTitle] = useState('');
+  const [editingStopIndex, setEditingStopIndex] = useState<number>(-1);
+
   useEffect(() => {
     if (isOpen) {
       fetchDriversAndVehicles();
     }
   }, [isOpen]);
+
+  // Map picker handlers
+  const openMapPicker = (type: 'start' | 'end' | 'stop', title: string, stopIndex: number = -1) => {
+    setMapPickerType(type);
+    setMapPickerTitle(title);
+    setEditingStopIndex(stopIndex);
+    setIsMapPickerOpen(true);
+  };
+
+  const handleLocationSelect = (location: { lat: number; lng: number }) => {
+    if (mapPickerType === 'start') {
+      setFormData(prev => ({
+        ...prev,
+        start_latitude: location.lat.toString(),
+        start_longitude: location.lng.toString()
+      }));
+    } else if (mapPickerType === 'end') {
+      setFormData(prev => ({
+        ...prev,
+        end_latitude: location.lat.toString(),
+        end_longitude: location.lng.toString()
+      }));
+    } else if (mapPickerType === 'stop') {
+      if (editingStopIndex >= 0) {
+        // Update existing stop
+        setStops(prev => prev.map((stop, index) => 
+          index === editingStopIndex 
+            ? { ...stop, latitude: location.lat, longitude: location.lng }
+            : stop
+        ));
+      } else {
+        // Update new stop being created
+        setNewStop(prev => ({
+          ...prev,
+          latitude: location.lat,
+          longitude: location.lng
+        }));
+      }
+    }
+    setIsMapPickerOpen(false);
+  };
 
   // Check step completion status without side effects
   const isBasicInfoComplete = () => {
@@ -631,7 +683,17 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
                 {/* Start Point Coordinates */}
                 <div className="md:col-span-2">
                   <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                    <h4 className="text-sm font-semibold text-blue-900 mb-2">📍 Start Point Coordinates (for Live Tracking)</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-blue-900">📍 Start Point Coordinates (for Live Tracking)</h4>
+                      <button
+                        type="button"
+                        onClick={() => openMapPicker('start', 'Select Start Location')}
+                        className="inline-flex items-center px-3 py-1 text-xs bg-blue-100 text-blue-800 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors"
+                      >
+                        <MapPin className="h-3 w-3 mr-1" />
+                        Select on Map
+                      </button>
+                    </div>
                     <p className="text-blue-700 text-xs mb-3">Add GPS coordinates for the starting point to enable live tracking on maps</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
@@ -681,13 +743,29 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
                         {errors.start_longitude && <p className="text-red-500 text-xs mt-1">{errors.start_longitude}</p>}
                       </div>
                     </div>
+                    {formData.start_latitude && formData.start_longitude && (
+                      <div className="flex items-center text-green-600 text-xs mt-2">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        Start location coordinates set ({formData.start_latitude}, {formData.start_longitude})
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* End Point Coordinates */}
                 <div className="md:col-span-2">
                   <div className="bg-green-50 p-4 rounded-lg mb-4">
-                    <h4 className="text-sm font-semibold text-green-900 mb-2">🏁 End Point Coordinates (for Live Tracking)</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-green-900">🏁 End Point Coordinates (for Live Tracking)</h4>
+                      <button
+                        type="button"
+                        onClick={() => openMapPicker('end', 'Select End Location')}
+                        className="inline-flex items-center px-3 py-1 text-xs bg-green-100 text-green-800 border border-green-300 rounded-md hover:bg-green-200 transition-colors"
+                      >
+                        <MapPin className="h-3 w-3 mr-1" />
+                        Select on Map
+                      </button>
+                    </div>
                     <p className="text-green-700 text-xs mb-3">Add GPS coordinates for the destination to enable live tracking on maps</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
@@ -896,95 +974,46 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
                 </div>
               </div>
 
-              {/* Stops List */}
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Route Stops ({stops.length})</h4>
-                {errors.stops_sequence && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-red-800 text-sm font-medium">⚠️ Stop Time Error</p>
-                    <p className="text-red-700 text-sm">{errors.stops_sequence}</p>
+              {/* Drag & Drop Stops List */}
+              <DragDropStops
+                stops={stops.map(stop => ({
+                  ...stop,
+                  latitude: stop.latitude,
+                  longitude: stop.longitude
+                }))}
+                onReorder={(newStops) => setStops(newStops)}
+                onEdit={(index) => {
+                  // Set the stop to edit in the form
+                  const stopToEdit = stops[index];
+                  setNewStop({
+                    stop_name: stopToEdit.stop_name,
+                    stop_time: stopToEdit.stop_time,
+                    latitude: stopToEdit.latitude,
+                    longitude: stopToEdit.longitude,
+                    is_major_stop: stopToEdit.is_major_stop
+                  });
+                  // Remove the stop from the list (user will re-add it after editing)
+                  removeStop(index);
+                }}
+                onDelete={removeStop}
+                onToggleMajor={(index) => {
+                  const updatedStops = [...stops];
+                  updatedStops[index] = {
+                    ...updatedStops[index],
+                    is_major_stop: !updatedStops[index].is_major_stop
+                  };
+                  setStops(updatedStops);
+                }}
+              />
+              
+              {errors.stops_sequence && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 text-red-600" />
+                    <span className="text-red-700 text-sm">{errors.stops_sequence}</span>
                   </div>
-                )}
-                {stops.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                    <p>No stops added yet. Add your first stop above.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {stops.map((stop, index) => (
-                      <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${
-                        index === 0 ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
-                      }`}>
-                        <div className="flex flex-col items-center">
-                          <span className={`text-xs font-medium px-2 py-1 rounded ${
-                            index === 0 
-                              ? 'text-green-800 bg-green-100' 
-                              : 'text-gray-600 bg-white'
-                          }`}>
-                            {index === 0 ? '🚌' : index + 1}
-                          </span>
-                        </div>
-                        
-                        <div className="flex-1 space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                              <div className="flex items-center space-x-2">
-                            <p className="font-medium text-gray-900">{stop.stop_name}</p>
-                                {index === 0 && (
-                                  <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                                    Starting Point
-                                  </span>
-                                )}
-                              </div>
-                              {stop.is_major_stop && index !== 0 && (
-                              <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mt-1">
-                                Major Stop
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Clock className="w-4 h-4 mr-1" />
-                              {index === 0 ? (
-                                <span className="font-medium text-green-700">
-                                  Departure: {stop.stop_time}
-                                </span>
-                              ) : (
-                                <span>Arrival: {stop.stop_time}</span>
-                              )}
-                          </div>
-                          <div className="flex items-center justify-end">
-                              {index === 0 ? (
-                                <div className="p-1 text-gray-400" title="Starting location cannot be removed">
-                                  <Trash2 className="w-4 h-4 opacity-30" />
-                                </div>
-                              ) : (
-                            <button
-                              type="button"
-                              onClick={() => removeStop(index)}
-                              className="p-1 text-red-400 hover:text-red-600"
-                                  title="Remove this stop"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                              )}
-                          </div>
-                          </div>
-                          
-                          {/* GPS Coordinates Display */}
-                          {stop.latitude && stop.longitude && (
-                            <div className={`px-3 py-2 rounded text-xs ${
-                              index === 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              <span className="font-medium">📍 GPS:</span> {stop.latitude.toFixed(6)}, {stop.longitude.toFixed(6)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1176,6 +1205,22 @@ export default function AddRouteModal({ isOpen, onClose, onSuccess }: AddRouteMo
           </div>
         </div>
       </motion.div>
+      
+      {/* Map Picker Modal */}
+      <MapPicker
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onLocationSelect={handleLocationSelect}
+        title={mapPickerTitle}
+        type={mapPickerType}
+        initialLocation={
+          mapPickerType === 'start' && formData.start_latitude && formData.start_longitude
+            ? { lat: parseFloat(formData.start_latitude), lng: parseFloat(formData.start_longitude) }
+            : mapPickerType === 'end' && formData.end_latitude && formData.end_longitude
+            ? { lat: parseFloat(formData.end_latitude), lng: parseFloat(formData.end_longitude) }
+            : undefined
+        }
+      />
     </div>
   );
 } 

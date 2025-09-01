@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
-  Route as RouteIcon, 
+  MapPin as RouteIcon, 
   UserCheck, 
   Car,
   TrendingUp,
@@ -25,6 +25,7 @@ import {
 import toast from 'react-hot-toast';
 import UniversalStatCard from '@/components/universal-stat-card';
 import { createDashboardStats, safeNumber } from '@/lib/stat-utils';
+import AnalyticsDashboard from '@/components/ui/analytics-dashboard';
 
 interface DashboardStats {
   totalStudents: number;
@@ -51,6 +52,7 @@ const DashboardPage = () => {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('adminUser');
@@ -114,7 +116,7 @@ const DashboardPage = () => {
         desc: 'View comprehensive system metrics',
         icon: BarChart3,
         color: 'bg-gradient-to-br from-green-500 to-emerald-600',
-        href: '/analytics'
+        onClick: () => setIsAnalyticsOpen(true)
       },
       {
         title: 'User Management',
@@ -232,7 +234,7 @@ const DashboardPage = () => {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
           <button 
-            onClick={() => router.push('/analytics')}
+            onClick={() => setIsAnalyticsOpen(true)}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center transition-colors"
           >
             View Analytics <Eye className="w-4 h-4 ml-1" />
@@ -242,7 +244,7 @@ const DashboardPage = () => {
           {getQuickActions().map((action, index) => (
             <div
               key={index}
-              onClick={() => router.push(action.href)}
+              onClick={() => action.onClick ? action.onClick() : router.push(action.href)}
               className="relative overflow-hidden bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02] group"
             >
               <div className="flex items-center space-x-4">
@@ -382,6 +384,12 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Analytics Dashboard Modal */}
+      <AnalyticsDashboard
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+      />
     </div>
   );
 };

@@ -85,8 +85,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log('📊 Fetched enrollment requests:', {
+      total: requests?.length || 0,
+      nullRoutes: requests?.filter(r => !r.routes).length || 0,
+      nullStops: requests?.filter(r => !r.route_stops).length || 0,
+      nullStudents: requests?.filter(r => !r.students).length || 0
+    });
+
+    // Additional diagnostic: Check for orphaned references
+    const orphanedRouteIds = requests
+      ?.filter(r => !r.routes && r.preferred_route_id)
+      .map(r => r.preferred_route_id);
+    
+    const orphanedStopIds = requests
+      ?.filter(r => !r.route_stops && r.preferred_stop_id)
+      .map(r => r.preferred_stop_id);
+
+    if (orphanedRouteIds?.length > 0) {
+      console.warn('🔍 Found enrollment requests with orphaned route references:', orphanedRouteIds);
+    }
+    
+    if (orphanedStopIds?.length > 0) {
+      console.warn('🔍 Found enrollment requests with orphaned stop references:', orphanedStopIds);
+    }
+
     // Format the data for easier consumption
-    const formattedRequests = requests.map(request => ({
+    const formattedRequests = requests.map(request => {
+      try {
+        // Log requests with missing route/stop data for debugging
+        if (!request.routes || !request.route_stops) {
+          console.warn('⚠️ Enrollment request with missing data:', {
+            requestId: request.id,
+            studentId: request.student_id,
+            preferredRouteId: request.preferred_route_id,
+            preferredStopId: request.preferred_stop_id,
+            hasRoute: !!request.routes,
+            hasStop: !!request.route_stops
+          });
+        }
+
+        return {
       id: request.id,
       student_id: request.student_id,
       preferred_route_id: request.preferred_route_id,
@@ -118,7 +156,7 @@ export async function GET(request: NextRequest) {
           degree_name: request.students.programs?.degree_name || 'N/A'
         }
       },
-      route: {
+      route: request.routes ? {
         id: request.routes.id,
         route_number: request.routes.route_number,
         route_name: request.routes.route_name,
@@ -128,15 +166,87 @@ export async function GET(request: NextRequest) {
         total_capacity: request.routes.total_capacity,
         current_passengers: request.routes.current_passengers || 0,
         status: request.routes.status
+      } : {
+        id: null,
+        route_number: 'N/A',
+        route_name: 'Route not found',
+        start_location: 'N/A',
+        end_location: 'N/A',
+        fare: 0,
+        total_capacity: 0,
+        current_passengers: 0,
+        status: 'inactive'
       },
-      stop: {
+      stop: request.route_stops ? {
         id: request.route_stops.id,
         stop_name: request.route_stops.stop_name,
         stop_time: request.route_stops.stop_time,
         sequence_order: request.route_stops.sequence_order,
         is_major_stop: request.route_stops.is_major_stop
+      } : {
+        id: null,
+        stop_name: 'Stop not found',
+        stop_time: 'N/A',
+        sequence_order: 0,
+        is_major_stop: false
       }
-    }));
+        };
+      } catch (mappingError) {
+        console.error('❌ Error processing enrollment request:', {
+          requestId: request.id,
+          error: mappingError.message,
+          request: request
+        });
+        
+        // Return a safe fallback object for failed requests
+        return {
+          id: request.id || 'unknown',
+          student_id: request.student_id || 'unknown',
+          preferred_route_id: request.preferred_route_id || null,
+          preferred_stop_id: request.preferred_stop_id || null,
+          request_status: request.request_status || 'unknown',
+          request_type: request.request_type || 'standard',
+          semester_id: request.semester_id || null,
+          academic_year: request.academic_year || 'Unknown',
+          requested_at: request.requested_at || new Date().toISOString(),
+          approved_at: request.approved_at || null,
+          approved_by: request.approved_by || null,
+          rejection_reason: request.rejection_reason || null,
+          admin_notes: request.admin_notes || null,
+          special_requirements: request.special_requirements || null,
+          student: {
+            id: 'unknown',
+            student_name: 'Error loading student',
+            email: 'unknown@error.com',
+            mobile: 'N/A',
+            roll_number: 'ERROR',
+            father_name: 'N/A',
+            mother_name: 'N/A',
+            parent_mobile: 'N/A',
+            department: { department_name: 'Error' },
+            program: { program_name: 'Error', degree_name: 'Error' }
+          },
+          route: {
+            id: null,
+            route_number: 'ERROR',
+            route_name: 'Error loading route',
+            start_location: 'N/A',
+            end_location: 'N/A',
+            fare: 0,
+            total_capacity: 0,
+            current_passengers: 0,
+            status: 'error'
+          },
+          stop: {
+            id: null,
+            stop_name: 'Error loading stop',
+            stop_time: 'N/A',
+            sequence_order: 0,
+            is_major_stop: false
+          }
+        };
+      }
+    });
 
     // Calculate summary statistics
     const stats = {

@@ -18,7 +18,7 @@ import {
   User,
   Shield,
   Car,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Calendar,
   FileText,
   Heart,
@@ -204,10 +204,19 @@ const DriversPage = () => {
   const handleDeleteDriver = async (driver: any) => {
     if (confirm(`Are you sure you want to delete driver ${driver.driver_name}?`)) {
       try {
-        // In a real app, this would call the delete API
-        // await DatabaseService.deleteDriver(driver.id);
-        toast.success(`Driver ${driver.driver_name} would be deleted`);
-        // For now, just remove from local state
+        // Call the delete API
+        const response = await fetch(`/api/admin/drivers/${driver.id}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete driver');
+        }
+
+        toast.success(result.message || `Driver ${driver.driver_name || driver.name} deleted successfully`);
+        fetchDrivers(); // Refresh the list
         setDrivers(drivers.filter(d => d.id !== driver.id));
       } catch (error) {
         toast.error('Failed to delete driver');

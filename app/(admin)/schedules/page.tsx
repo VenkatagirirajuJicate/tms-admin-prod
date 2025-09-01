@@ -37,7 +37,7 @@ import {
   HelpCircle,
   Bookmark,
   Edit,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Navigation,
   FileText
 } from 'lucide-react';

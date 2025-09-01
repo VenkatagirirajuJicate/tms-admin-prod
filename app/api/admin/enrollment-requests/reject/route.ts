@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     
     let foundStudent = null;
     try {
-      const response = await fetch('https://myadmin.jkkn.ac.in/api/api-management/students', {
+      const response = await fetch('https://my.jkkn.ac.in/api/api-management/students', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

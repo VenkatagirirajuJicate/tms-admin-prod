@@ -20,7 +20,7 @@ import {
   Heart,
   TrendingUp,
   CreditCard,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Car,
   Loader2
 } from 'lucide-react';

@@ -17,7 +17,7 @@ import {
   CheckCircle,
   Loader2,
   Calendar,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Car,
   Users,
   Eye,

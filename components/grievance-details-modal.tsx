@@ -9,7 +9,7 @@ import {
   CheckCircle,
   Clock,
   User,
-  Route as RouteIcon,
+  MapPin as RouteIcon,
   Star,
   ThumbsUp,
   MessageSquare,

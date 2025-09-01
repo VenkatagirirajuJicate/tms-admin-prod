@@ -145,10 +145,20 @@ const EditVehicleModal: React.FC<EditVehicleModalProps> = ({
 
       console.log('Updating vehicle with data:', vehicleData);
 
-      // In a real implementation, this would update the database
-      // await DatabaseService.updateVehicle(vehicle.id, vehicleData);
-      
-      // For now, simulate the API call
+      // Update vehicle using API
+      const response = await fetch(`/api/admin/vehicles/${vehicle.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vehicleData),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update vehicle');
+      }
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       toast.success('Vehicle updated successfully!');
