@@ -28,17 +28,6 @@ import {
 import toast from 'react-hot-toast';
 import { DatabaseService } from '@/lib/database';
 
-
-// Temporarily comment out problematic components to identify the issue
-// import AddRouteModal from '@/components/add-route-modal';
-// import EditRouteModal from '@/components/edit-route-modal';
-// import RouteDetailsModal from '@/components/route-details-modal';
-
-// const LiveTrackingMap = dynamic(() => import('@/components/live-tracking-map'), { ssr: false });
-// const LiveGPSTrackingModal = dynamic(() => import('@/components/live-gps-tracking-modal'), { ssr: false });
-// import UniversalStatCard from '@/components/universal-stat-card';
-// import { createRouteStats, safeNumber, safePercentage } from '@/lib/stat-utils';
-
 const RouteCard = ({ route, onEdit, onDelete, onView, onLiveTrack, userRole }: any) => {
   const canEdit = ['super_admin', 'transport_manager'].includes(userRole);
   const canDelete = userRole === 'super_admin';
@@ -205,21 +194,105 @@ const RouteCard = ({ route, onEdit, onDelete, onView, onLiveTrack, userRole }: a
 };
 
 const RoutesPage = () => {
-  // Ultra-minimal version for debugging
-  return <div>Routes Management - Debugging</div>;
-};
+  const [routes, setRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userRole, setUserRole] = useState('transport_manager'); // Default role
 
-// Create a client-only wrapper
-const ClientOnlyRoutesPage = () => {
-  if (typeof window === 'undefined') {
-    return null; // Return null during SSR
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        setLoading(true);
+        const routesData = await DatabaseService.getRoutes();
+        setRoutes(routesData);
+      } catch (err) {
+        console.error('Error fetching routes:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch routes');
+        toast.error('Failed to load routes');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
+  }, []);
+
+  const handleEdit = (route: any) => {
+    toast.info('Edit functionality coming soon');
+  };
+
+  const handleDelete = (route: any) => {
+    toast.info('Delete functionality coming soon');
+  };
+
+  const handleView = (route: any) => {
+    toast.info('View details functionality coming soon');
+  };
+
+  const handleLiveTrack = (route: any) => {
+    toast.info('Live tracking functionality coming soon');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-2 text-gray-600">Loading routes...</span>
+      </div>
+    );
   }
-  return <RoutesPage />;
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Routes</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Routes Management</h1>
+        <p className="text-gray-600">Manage transport routes and their configurations</p>
+      </div>
+
+      {routes.length === 0 ? (
+        <div className="text-center py-12">
+          <RouteIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Routes Found</h3>
+          <p className="text-gray-600 mb-4">Get started by adding your first transport route.</p>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            Add Route
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {routes.map((route: any) => (
+            <RouteCard
+              key={route.id}
+              route={route}
+              userRole={userRole}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+              onLiveTrack={handleLiveTrack}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
-// Disable static generation for this page
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
-
-export default dynamic(() => Promise.resolve(ClientOnlyRoutesPage), { ssr: false }); 
+export default RoutesPage; 

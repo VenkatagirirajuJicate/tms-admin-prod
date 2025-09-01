@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -15,8 +15,8 @@ import {
   User,
   Clock
 } from 'lucide-react';
-import { studentsData } from '@/data/admin-data';
 import toast from 'react-hot-toast';
+import { DatabaseService } from '@/lib/database';
 
 interface RefundModalProps {
   isOpen: boolean;
@@ -38,10 +38,27 @@ const RefundModal: React.FC<RefundModalProps> = ({
   const [processingFee, setProcessingFee] = useState(0);
   const [notes, setNotes] = useState('');
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentsData = await DatabaseService.getStudents();
+        setStudents(studentsData);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchStudents();
+    }
+  }, [isOpen]);
 
   if (!isOpen || !payment) return null;
 
-  const student = studentsData.find(s => s.id === payment.studentId);
+  const student = students.find(s => s.id === payment.studentId);
 
   const refundReasons = [
     'Trip cancelled by operator',

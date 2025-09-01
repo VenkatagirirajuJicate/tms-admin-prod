@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -22,8 +22,8 @@ import {
   Eye,
   Download
 } from 'lucide-react';
-import { studentsData } from '@/data/admin-data';
 import PaymentReceiptModal from './payment-receipt-modal';
+import { DatabaseService } from '@/lib/database';
 
 interface PaymentDetailsModalProps {
   isOpen: boolean;
@@ -48,10 +48,27 @@ const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 }) => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  const [students, setStudents] = useState<any[]>([]);
+
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentsData = await DatabaseService.getStudents();
+        setStudents(studentsData);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchStudents();
+    }
+  }, [isOpen]);
 
   if (!isOpen || !payment) return null;
 
-  const student = studentsData.find(s => s.id === payment.studentId);
+  const student = students.find(s => s.id === payment.studentId);
   const canRefund = ['super_admin', 'finance_admin'].includes(userRole) && payment.status === 'completed';
   const canApprove = ['super_admin', 'finance_admin'].includes(userRole) && payment.status === 'pending';
   const canEdit = ['super_admin', 'finance_admin'].includes(userRole) && payment.status !== 'completed';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -13,7 +13,7 @@ import {
   X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { routesData } from '@/data/admin-data';
+import { DatabaseService } from '@/lib/database';
 
 // Mock function to simulate fetching from TMS main database
 const fetchStudentFromMainDB = async (email: string) => {
@@ -57,6 +57,7 @@ const EnhancedAddStudentModal: React.FC<EnhancedAddStudentModalProps> = ({ isOpe
   const [fetchedStudent, setFetchedStudent] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [routes, setRoutes] = useState([]);
   
   const [transportData, setTransportData] = useState({
     allocatedRoute: '',
@@ -67,17 +68,34 @@ const EnhancedAddStudentModal: React.FC<EnhancedAddStudentModalProps> = ({ isOpe
 
   const [errors, setErrors] = useState<any>({});
 
+  // Fetch routes on component mount
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        const routesData = await DatabaseService.getRoutes();
+        setRoutes(routesData);
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+        toast.error('Failed to load routes');
+      }
+    };
+
+    if (isOpen) {
+      fetchRoutes();
+    }
+  }, [isOpen]);
+
   const getAvailableRoutes = () => {
-    return routesData.filter(route => 
-      route.status === 'active' && route.currentPassengers < route.totalCapacity
+    return routes.filter((route: any) => 
+      route.status === 'active' && route.current_passengers < route.total_capacity
     );
   };
 
   const getRouteAvailability = (routeId: string) => {
-    const route = routesData.find(r => r.id === routeId);
+    const route = routes.find((r: any) => r.id === routeId);
     if (!route) return { available: false, remaining: 0 };
     
-    const remaining = route.totalCapacity - route.currentPassengers;
+    const remaining = route.total_capacity - route.current_passengers;
     return { available: remaining > 0, remaining };
   };
 
@@ -180,7 +198,7 @@ const EnhancedAddStudentModal: React.FC<EnhancedAddStudentModalProps> = ({ isOpe
     onClose();
   };
 
-  const selectedRoute = routesData.find(r => r.id === transportData.allocatedRoute);
+  const selectedRoute = routes.find(r => r.id === transportData.allocatedRoute);
   const routeAvailability = transportData.allocatedRoute ? getRouteAvailability(transportData.allocatedRoute) : null;
 
   if (!isOpen) return null;

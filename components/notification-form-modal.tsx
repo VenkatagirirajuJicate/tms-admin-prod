@@ -23,7 +23,7 @@ import {
   Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { studentsData, driversData } from '@/data/admin-data';
+import { DatabaseService } from '@/lib/database';
 
 interface NotificationFormModalProps {
   isOpen: boolean;
@@ -76,6 +76,29 @@ const NotificationFormModal: React.FC<NotificationFormModalProps> = ({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [studentsData, driversData] = await Promise.all([
+          DatabaseService.getStudents(),
+          DatabaseService.getDrivers()
+        ]);
+        setStudents(studentsData);
+        setDrivers(driversData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
+      }
+    };
+
+    if (isOpen) {
+      fetchData();
+    }
+  }, [isOpen]);
 
   // Generate notification ID function
   const generateNotificationId = () => {
@@ -149,9 +172,9 @@ const NotificationFormModal: React.FC<NotificationFormModalProps> = ({
     { value: 'urgent', label: 'Urgent', color: 'text-red-600' }
   ];
 
-  const availableUsers = formData.targetAudience === 'students' ? studentsData : 
-                        formData.targetAudience === 'drivers' ? driversData : 
-                        [...studentsData, ...driversData];
+  const availableUsers = formData.targetAudience === 'students' ? students : 
+                        formData.targetAudience === 'drivers' ? drivers : 
+                        [...students, ...drivers];
 
   const filteredUsers = availableUsers.filter(user => {
     const name = 'studentName' in user ? user.studentName : user.name;

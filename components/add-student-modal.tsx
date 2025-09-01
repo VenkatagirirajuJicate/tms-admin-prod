@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, User, GraduationCap, Mail, Phone, Building, MapPin, CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { routesData } from '@/data/admin-data';
+import { DatabaseService } from '@/lib/database';
 
 const AddStudentModal = ({ isOpen, onClose, onSave }: any) => {
   const [formData, setFormData] = useState({
@@ -21,6 +21,7 @@ const AddStudentModal = ({ isOpen, onClose, onSave }: any) => {
 
   const [errors, setErrors] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [routes, setRoutes] = useState([]);
 
   const departments = [
     'Computer Science',
@@ -37,6 +38,22 @@ const AddStudentModal = ({ isOpen, onClose, onSave }: any) => {
     'Bachelor of Engineering',
     'Master of Engineering'
   ];
+
+  // Fetch routes on component mount
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        const routesData = await DatabaseService.getRoutes();
+        setRoutes(routesData);
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchRoutes();
+    }
+  }, [isOpen]);
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -325,7 +342,7 @@ const AddStudentModal = ({ isOpen, onClose, onSave }: any) => {
                   disabled={isSubmitting}
                 >
                   <option value="">No transport required</option>
-                  {routesData.map(route => (
+                  {routes.map(route => (
                     <option key={route.id} value={route.id}>
                       {route.routeNumber} - {route.routeName}
                     </option>

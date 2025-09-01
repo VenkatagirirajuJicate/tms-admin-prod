@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -15,7 +15,7 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
-import { studentsData } from '@/data/admin-data';
+import { DatabaseService } from '@/lib/database';
 
 interface PaymentReceiptModalProps {
   isOpen: boolean;
@@ -42,9 +42,23 @@ const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
     taxId: 'GST: 33AABCU9603R1ZN'
   }
 }) => {
+  const [students, setStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const data = await DatabaseService.getStudents();
+        setStudents(data);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+    };
+    fetchStudents();
+  }, []);
+
   if (!isOpen || !payment) return null;
 
-  const student = studentsData.find(s => s.id === payment.studentId);
+  const student = students.find(s => s.id === payment.studentId);
   const receiptDate = new Date();
   const receiptNumber = `RCP${payment.id.toUpperCase()}${receiptDate.getFullYear()}`;
 

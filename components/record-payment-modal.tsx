@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -15,7 +15,7 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
-import { studentsData } from '@/data/admin-data';
+import { DatabaseService } from '@/lib/database';
 import toast from 'react-hot-toast';
 
 interface RecordPaymentModalProps {
@@ -32,6 +32,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   const [step, setStep] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentSearch, setStudentSearch] = useState('');
+  const [students, setStudents] = useState<any[]>([]);
   const [paymentData, setPaymentData] = useState({
     amount: '',
     paymentType: 'semester_fee',
@@ -42,6 +43,23 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     dateOfPayment: new Date().toISOString().split('T')[0],
     notes: ''
   });
+
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentsData = await DatabaseService.getStudents();
+        setStudents(studentsData);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        toast.error('Failed to load students');
+      }
+    };
+
+    if (isOpen) {
+      fetchStudents();
+    }
+  }, [isOpen]);
 
   // Define generateReceiptNumber before useEffect
   const generateReceiptNumber = () => {
@@ -62,9 +80,9 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
   if (!isOpen) return null;
 
-  const filteredStudents = studentsData.filter(student =>
-    student.studentName.toLowerCase().includes(studentSearch.toLowerCase()) ||
-    student.rollNumber.toLowerCase().includes(studentSearch.toLowerCase()) ||
+  const filteredStudents = students.filter((student: any) =>
+    student.student_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+    student.roll_number.toLowerCase().includes(studentSearch.toLowerCase()) ||
     student.email.toLowerCase().includes(studentSearch.toLowerCase())
   );
 
@@ -251,9 +269,9 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                         <div className="flex-1">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-medium text-gray-900">{student.studentName}</h4>
-                              <p className="text-sm text-gray-600">{student.rollNumber}</p>
-                              <p className="text-sm text-gray-500">{student.department.departmentName} - {student.program.degreeName}</p>
+                              <h4 className="font-medium text-gray-900">{student.student_name}</h4>
+                              <p className="text-sm text-gray-600">{student.roll_number}</p>
+                              <p className="text-sm text-gray-500">{student.department_name} - {student.program_name}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-sm text-gray-600">{student.email}</p>
@@ -286,8 +304,8 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                       <User className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium text-blue-900">{selectedStudent.studentName}</p>
-                      <p className="text-sm text-blue-700">{selectedStudent.rollNumber}</p>
+                      <p className="font-medium text-blue-900">{selectedStudent.student_name}</p>
+                      <p className="text-sm text-blue-700">{selectedStudent.roll_number}</p>
                     </div>
                   </div>
                 </div>
@@ -390,7 +408,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                     type="text"
                     value={paymentData.description}
                     onChange={(e) => setPaymentData({ ...paymentData, description: e.target.value })}
-                    placeholder={`${selectedPaymentType?.label} - ${selectedStudent.studentName}`}
+                    placeholder={`${selectedPaymentType?.label} - ${selectedStudent.student_name}`}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -424,15 +442,15 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Name:</span>
-                          <span className="font-medium">{selectedStudent.studentName}</span>
+                          <span className="font-medium">{selectedStudent.student_name}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Roll Number:</span>
-                          <span className="font-medium">{selectedStudent.rollNumber}</span>
+                          <span className="font-medium">{selectedStudent.roll_number}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Department:</span>
-                          <span className="font-medium">{selectedStudent.department.departmentName}</span>
+                          <span className="font-medium">{selectedStudent.department_name}</span>
                         </div>
                       </div>
                     </div>

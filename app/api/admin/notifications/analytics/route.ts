@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 // GET - Get notification analytics
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request;
     const adminId = searchParams.get('adminId');
     const days = parseInt(searchParams.get('days') || '30');
     

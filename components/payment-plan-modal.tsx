@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   X,
@@ -15,8 +15,8 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { studentsData } from '@/data/admin-data';
 import toast from 'react-hot-toast';
+import { DatabaseService } from '@/lib/database';
 
 interface PaymentPlanModalProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ const PaymentPlanModal: React.FC<PaymentPlanModalProps> = ({
 }) => {
   const [planType, setPlanType] = useState<'custom' | 'auto'>('auto');
   const [installments, setInstallments] = useState<InstallmentPlan[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [autoSettings, setAutoSettings] = useState({
     numberOfInstallments: 3,
     frequency: 'monthly', // weekly, monthly, biweekly
@@ -47,9 +48,25 @@ const PaymentPlanModal: React.FC<PaymentPlanModalProps> = ({
     lateFeePercentage: 2
   });
 
+  // Fetch students on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentsData = await DatabaseService.getStudents();
+        setStudents(studentsData);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchStudents();
+    }
+  }, [isOpen]);
+
   if (!isOpen || !outstandingDue) return null;
 
-  const student = studentsData.find(s => s.id === outstandingDue.studentId);
+  const student = students.find(s => s.id === outstandingDue.studentId);
   const totalAmount = outstandingDue.totalOutstanding;
 
   const generateAutoInstallments = () => {
